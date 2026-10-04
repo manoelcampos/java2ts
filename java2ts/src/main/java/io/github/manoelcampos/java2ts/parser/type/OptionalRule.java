@@ -1,10 +1,8 @@
 package io.github.manoelcampos.java2ts.parser.type;
 
-import io.github.manoelcampos.java2ts.ts.TsBasicType;
-import io.github.manoelcampos.java2ts.ts.TsType;
-
 import java.lang.reflect.AnnotatedType;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -17,36 +15,42 @@ import java.util.OptionalLong;
  *
  * <p>When the Optional is the type of a property, the property is declared as optional
  * (such as {@code name?: string}). Check {@link #isOptional(Class)}.</p>
+ * @param <R> the type of the result (such as a TypeScript type)
  * @author Manoel Campos
  */
-public final class OptionalRule implements TypeMappingRule {
+public final class OptionalRule<R> implements TypeMappingRule<R> {
     /**
      * Creates a {@link OptionalRule}.
      */
     public OptionalRule() {/**/}
 
-    private static final List<Class<?>> NUMBER_OPTIONALS = List.of(OptionalInt.class, OptionalLong.class, OptionalDouble.class);
+    private static final Map<Class<?>, BasicKind> NUMBER_OPTIONALS = Map.of(
+        OptionalInt.class, BasicKind.INTEGER,
+        OptionalLong.class, BasicKind.INTEGER,
+        OptionalDouble.class, BasicKind.DECIMAL
+    );
 
     /**
      * {@return true if a class is one of the Java Optional types, false otherwise}
      * @param aClass the class to check
      */
     public static boolean isOptional(final Class<?> aClass) {
-        return aClass == Optional.class || NUMBER_OPTIONALS.contains(aClass);
+        return aClass == Optional.class || NUMBER_OPTIONALS.containsKey(aClass);
     }
 
     @Override
-    public Optional<TsType> map(final AnnotatedType type, final TypeMapper mapper) {
+    public Optional<R> map(final AnnotatedType type, final TypeMapper<R> mapper) {
         return AnnotatedTypes.rawClass(type.getType())
                              .filter(OptionalRule::isOptional)
-                             .map(optionalClass -> mapper.context().nullable(valueType(optionalClass, type, mapper)));
+                             .map(optionalClass -> mapper.renderer().nullable(valueType(optionalClass, type, mapper)));
     }
 
-    private static TsType valueType(final Class<?> optionalClass, final AnnotatedType type, final TypeMapper mapper) {
-        if (NUMBER_OPTIONALS.contains(optionalClass))
-            return TsBasicType.NUMBER;
+    private static <R> R valueType(final Class<?> optionalClass, final AnnotatedType type, final TypeMapper<R> mapper) {
+        final BasicKind numberKind = NUMBER_OPTIONALS.get(optionalClass);
+        if (numberKind != null)
+            return mapper.renderer().basic(numberKind);
 
         final List<AnnotatedType> args = AnnotatedTypes.typeArguments(type);
-        return args.isEmpty() ? TsType.ANY : mapper.map(args.getFirst());
+        return args.isEmpty() ? mapper.renderer().any() : mapper.map(args.getFirst());
     }
 }

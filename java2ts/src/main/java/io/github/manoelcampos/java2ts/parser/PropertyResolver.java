@@ -27,7 +27,7 @@ import io.github.manoelcampos.java2ts.ts.TsUnionType;
 public final class PropertyResolver {
     private static final String UNDEFINED = "undefined";
     private final Settings settings;
-    private final TypeMapper typeMapper;
+    private final TypeMapper<TsType> typeMapper;
     private final Javadoc javadoc;
 
     /**
@@ -36,7 +36,7 @@ public final class PropertyResolver {
      * @param typeMapper the mapper to convert property types
      * @param javadoc where to get property documentation from
      */
-    public PropertyResolver(final Settings settings, final TypeMapper typeMapper, final Javadoc javadoc) {
+    public PropertyResolver(final Settings settings, final TypeMapper<TsType> typeMapper, final Javadoc javadoc) {
         this.settings = settings;
         this.typeMapper = typeMapper;
         this.javadoc = javadoc;
@@ -70,7 +70,7 @@ public final class PropertyResolver {
         if (javaOptional && mapped instanceof TsNullableType nullable)
             return nullable.type();
 
-        return property.hasAnyAnnotation(settings.nullableAnnotations()) ? typeMapper.context().nullable(mapped) : mapped;
+        return property.hasAnyAnnotation(settings.nullableAnnotations()) ? typeMapper.renderer().nullable(mapped) : mapped;
     }
 
     private static boolean isJavaOptional(final JavaProperty property) {

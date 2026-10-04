@@ -1,7 +1,5 @@
 package io.github.manoelcampos.java2ts.parser.type;
 
-import io.github.manoelcampos.java2ts.ts.TsBasicType;
-import io.github.manoelcampos.java2ts.ts.TsType;
 
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Type;
@@ -19,9 +17,10 @@ import java.util.stream.Collectors;
  * For instance, {@code java.util.List<java.math.BigDecimal>} matches neither {@code List<String>} nor a raw {@code List}.
  * A mapping without type arguments (such as {@code java.util.List}) matches the type with any arguments.</p>
  *
+ * @param <R> the type of the result (such as a TypeScript type)
  * @author Manoel Campos
  */
-public final class CustomTypeMappings implements TypeMappingRule {
+public final class CustomTypeMappings<R> implements TypeMappingRule<R> {
     private static final char SEPARATOR = ':';
     private final Map<String, String> mappings;
 
@@ -54,10 +53,18 @@ public final class CustomTypeMappings implements TypeMappingRule {
     }
 
     @Override
-    public Optional<TsType> map(final AnnotatedType type, final TypeMapper mapper) {
-        final Type javaType = type.getType();
+    public Optional<R> map(final AnnotatedType type, final TypeMapper<R> mapper) {
+        return find(type.getType()).map(mapper.renderer()::custom);
+    }
+
+    /**
+     * {@return the mapping for a Java type, or an empty Optional if there is none}
+     * A mapping for the exact (parameterized) type is preferred over a mapping for its raw class.
+     * @param javaType the type to look for a mapping
+     */
+    public Optional<String> find(final Type javaType) {
         final Optional<String> exactMapping = Optional.ofNullable(mappings.get(TypeNames.of(javaType)));
-        return exactMapping.or(() -> rawTypeMapping(javaType)).map(TsBasicType::new);
+        return exactMapping.or(() -> rawTypeMapping(javaType));
     }
 
     private Optional<String> rawTypeMapping(final Type javaType) {

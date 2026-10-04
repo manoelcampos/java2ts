@@ -1,7 +1,5 @@
 package io.github.manoelcampos.java2ts.parser.type;
 
-import io.github.manoelcampos.java2ts.ts.TsReferenceType;
-import io.github.manoelcampos.java2ts.ts.TsType;
 
 import java.lang.reflect.AnnotatedType;
 import java.util.Collections;
@@ -15,28 +13,28 @@ import java.util.Optional;
  * Raw usages of generic classes get {@code any} as type arguments, since TypeScript requires them.
  * @author Manoel Campos
  */
-public final class DeclaredTypeRule implements TypeMappingRule {
+public final class DeclaredTypeRule<R> implements TypeMappingRule<R> {
     /**
      * Creates a {@link DeclaredTypeRule}.
      */
     public DeclaredTypeRule() {/**/}
 
     @Override
-    public Optional<TsType> map(final AnnotatedType type, final TypeMapper mapper) {
+    public Optional<R> map(final AnnotatedType type, final TypeMapper<R> mapper) {
         return AnnotatedTypes.rawClass(type.getType())
                              .filter(aClass -> !aClass.isArray())
                              .map(aClass -> reference(aClass, type, mapper));
     }
 
-    private static TsType reference(final Class<?> aClass, final AnnotatedType type, final TypeMapper mapper) {
+    private static <R> R reference(final Class<?> aClass, final AnnotatedType type, final TypeMapper<R> mapper) {
         mapper.context().discovery().accept(aClass);
-        return new TsReferenceType(TsNames.of(aClass), typeArguments(aClass, type, mapper));
+        return mapper.renderer().reference(aClass, typeArguments(aClass, type, mapper));
     }
 
-    private static List<TsType> typeArguments(final Class<?> aClass, final AnnotatedType type, final TypeMapper mapper) {
+    private static <R> List<R> typeArguments(final Class<?> aClass, final AnnotatedType type, final TypeMapper<R> mapper) {
         final List<AnnotatedType> args = AnnotatedTypes.typeArguments(type);
         if (args.isEmpty())
-            return Collections.nCopies(aClass.getTypeParameters().length, TsType.ANY);
+            return Collections.nCopies(aClass.getTypeParameters().length, mapper.renderer().any());
 
         return args.stream().map(mapper::map).toList();
     }

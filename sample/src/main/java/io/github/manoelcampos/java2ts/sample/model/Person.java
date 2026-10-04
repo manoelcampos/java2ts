@@ -10,6 +10,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.jspecify.annotations.Nullable;
@@ -28,7 +31,7 @@ import java.util.Optional;
 @Entity @Getter @Setter @DTO
 public class Person extends AbstractBaseModel implements Comparable<Person> {
     /** The person's full name. */
-    @NotNull @NotBlank
+    @NotNull @NotBlank @Size(max = 100)
     private String name;
 
     /** The e-mail, which is optional. */
@@ -36,7 +39,7 @@ public class Person extends AbstractBaseModel implements Comparable<Person> {
     private String email;
 
     /** The birth date (converted to string, since it's serialized in ISO-8601 format). */
-    @NotNull
+    @NotNull @Past
     private LocalDate birthDate;
 
     /** When the person was registered. */
@@ -58,6 +61,7 @@ public class Person extends AbstractBaseModel implements Comparable<Person> {
     private List<Phone> phones = new ArrayList<>();
 
     /** Primitive values are always required, since they can't be null. */
+    @PositiveOrZero
     private int loginAttempts;
 
     /** Ignored by Jackson, so it's not included in TypeScript nor in the DTO. */

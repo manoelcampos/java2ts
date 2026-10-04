@@ -1,6 +1,5 @@
 package io.github.manoelcampos.java2ts.parser.type;
 
-import io.github.manoelcampos.java2ts.ts.TsType;
 
 import java.lang.reflect.AnnotatedType;
 import java.util.Optional;
@@ -11,16 +10,16 @@ import java.util.Optional;
  * and types excluded by the user.
  * @author Manoel Campos
  */
-public final class UndeclarableTypeRule implements TypeMappingRule {
+public final class UndeclarableTypeRule<R> implements TypeMappingRule<R> {
     /**
      * Creates a {@link UndeclarableTypeRule}.
      */
     public UndeclarableTypeRule() {/**/}
 
     @Override
-    public Optional<TsType> map(final AnnotatedType type, final TypeMapper mapper) {
+    public Optional<R> map(final AnnotatedType type, final TypeMapper<R> mapper) {
         return AnnotatedTypes.rawClass(type.getType())
                              .filter(aClass -> JdkTypes.isJdkType(aClass) || mapper.context().exclusion().test(aClass))
-                             .map(aClass -> TsType.ANY);
+                             .map(aClass -> mapper.renderer().any());
     }
 }

@@ -46,14 +46,26 @@ jobs:
     - name: Build, test (with coverage check) and install the plugin
       run: mvn -B install --file java2ts/pom.xml
 
-    - name: Build the sample project (which generates its TypeScript file)
+    - name: Build the sample project (which generates its TypeScript and validation files)
       run: mvn -B compile --file sample/pom.xml
 
-    - name: Check the generated TypeScript file compiles
-      run: npx --yes --package typescript tsc --noEmit --strict sample/frontend/models.generated.ts
+    - name: Set up Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: lts/*
+        cache: npm
+        cache-dependency-path: sample/frontend/package-lock.json
 
-    - name: Check the committed sample TypeScript file is up to date
-      run: git diff --exit-code sample/frontend/models.generated.ts
+    - name: Install the sample frontend dependencies (Zod and TypeScript)
+      working-directory: sample/frontend
+      run: npm ci
+
+    - name: Check the generated TypeScript files compile and the validation schemas work
+      working-directory: sample/frontend
+      run: npm run check
+
+    - name: Check the committed sample TypeScript files are up to date
+      run: git diff --exit-code sample/frontend/models.generated.ts sample/frontend/validation.generated.ts
 
     - name: Codacy coverage report upload
       if: matrix.java == needs.resolve-java-versions.outputs.last

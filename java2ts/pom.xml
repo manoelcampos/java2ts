@@ -207,6 +207,20 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <!-- Bean Validation annotations, used just to test the validation schemas generation (they're read by name). -->
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>3.1.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- Used just to test the Hibernate Validator annotations (such as @Length and @Range). -->
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>9.1.3.Final</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <!-- Used just to test the javadoc extraction, which downloads it on demand at runtime. -->
             <groupId>com.manticore-projects.tools</groupId>
             <artifactId>xml-doclet</artifactId>

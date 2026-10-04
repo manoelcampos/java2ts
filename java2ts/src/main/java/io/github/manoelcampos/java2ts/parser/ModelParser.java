@@ -8,6 +8,7 @@ import io.github.manoelcampos.java2ts.parser.type.TypeMapperFactory;
 import io.github.manoelcampos.java2ts.ts.TsDeclaration;
 import io.github.manoelcampos.java2ts.ts.TsModel;
 import io.github.manoelcampos.java2ts.ts.TsNullableType;
+import io.github.manoelcampos.java2ts.ts.TsType;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 /**
- * Converts Java classes into a {@link TsModel} with their TypeScript declarations.
+ * Converts Java classes into a {@link ParsedModel} with their TypeScript declarations.
  * Classes referenced by the converted ones (such as supertypes and property types) are converted too.
  * Each instance must be used for a single conversion.
  * @author Manoel Campos
@@ -42,8 +43,8 @@ public final class ModelParser {
      */
     public ModelParser(final Settings settings, final Javadoc javadoc, final Predicate<Class<?>> exclusion) {
         this.settings = settings;
-        final var context = new TypeContext(pending::add, exclusion, settings.nullableAnnotations(), settings.nullabilityDefinition());
-        final TypeMapper typeMapper = TypeMapperFactory.create(settings, context);
+        final var context = new TypeContext(pending::add, exclusion, settings.nullableAnnotations());
+        final TypeMapper<TsType> typeMapper = TypeMapperFactory.create(settings, context);
         this.interfaceParser = new InterfaceDeclarationParser(typeMapper, new PropertyResolver(settings, typeMapper, javadoc), javadoc);
         this.enumParser = new EnumDeclarationParser(javadoc);
     }
@@ -54,7 +55,7 @@ public final class ModelParser {
      * @return the model with the declarations for the given classes and the ones they reference
      * @throws IllegalStateException if two different classes have the same TypeScript name
      */
-    public TsModel parse(final Collection<Class<?>> classes) {
+    public ParsedModel parse(final Collection<Class<?>> classes) {
         pending.addAll(classes);
         final var declarations = new ArrayList<TsDeclaration>();
         while (!pending.isEmpty()) {
@@ -64,7 +65,7 @@ public final class ModelParser {
         }
 
         addNullableAlias(declarations);
-        return new TsModel(declarations);
+        return new ParsedModel(new TsModel(declarations), List.copyOf(classesByTsName.values()));
     }
 
     private TsDeclaration parse(final Class<?> aClass) {

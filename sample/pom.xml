@@ -123,6 +123,23 @@
                         <!-- Keeps the precision of BigDecimal values, when serialized as strings -->
                         <mapping>java.math.BigDecimal:string</mapping>
                     </customTypeMappings>
+
+                    <!-- Generates Zod 4 schemas (which implement Standard Schema) from the Bean Validation annotations -->
+                    <validation>
+                        <enabled>true</enabled>
+                        <!-- Zod's built-in messages in Brazilian Portuguese -->
+                        <locale>pt-BR</locale>
+                        <!-- The Phone schema is written by hand in the module below -->
+                        <excludeClasses>
+                            <excludeClass>io.github.manoelcampos.java2ts.sample.model.Phone</excludeClass>
+                        </excludeClasses>
+                        <customSchemasModule>./validation.custom</customSchemasModule>
+                        <!-- Types with a custom TypeScript mapping need a custom schema too -->
+                        <customTypeMappings>
+                            <mapping>java.util.List[java.util.List[java.lang.Double]]:z.array(z.tuple([z.number(), z.number()]))</mapping>
+                            <mapping>java.math.BigDecimal:z.string().regex(/^-?\d+(\.\d+)?$/)</mapping>
+                        </customTypeMappings>
+                    </validation>
                 </configuration>
             </plugin>
         </plugins>

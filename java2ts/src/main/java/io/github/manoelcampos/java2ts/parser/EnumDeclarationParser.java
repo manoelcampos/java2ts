@@ -32,14 +32,21 @@ public final class EnumDeclarationParser implements DeclarationParser {
 
     @Override
     public TsDeclaration parse(final Class<?> aClass) {
-        final List<TsType> literals = Arrays.stream(aClass.getDeclaredFields())
-                                            .filter(Field::isEnumConstant)
-                                            .map(EnumDeclarationParser::constantName)
-                                            .<TsType>map(TsBasicType::literal)
-                                            .toList();
+        final List<TsType> literals = constantNames(aClass).stream().<TsType>map(TsBasicType::literal).toList();
 
         final TsType type = literals.isEmpty() ? NEVER : TsUnionType.of(literals);
         return new TsTypeAlias(TsNames.of(aClass), List.of(), type, Deprecation.addTag(javadoc.classComment(aClass), List.of(aClass)));
+    }
+
+    /**
+     * {@return the names of the constants of an enum, as they are serialized to JSON}
+     * @param enumClass the enum class
+     */
+    public static List<String> constantNames(final Class<?> enumClass) {
+        return Arrays.stream(enumClass.getDeclaredFields())
+                     .filter(Field::isEnumConstant)
+                     .map(EnumDeclarationParser::constantName)
+                     .toList();
     }
 
     private static String constantName(final Field constant) {

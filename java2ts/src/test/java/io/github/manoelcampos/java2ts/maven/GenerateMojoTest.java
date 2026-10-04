@@ -3,6 +3,7 @@ package io.github.manoelcampos.java2ts.maven;
 import io.github.manoelcampos.java2ts.TestClasspath;
 import io.github.manoelcampos.java2ts.config.OutputFileType;
 import io.github.manoelcampos.java2ts.config.Settings;
+import io.github.manoelcampos.java2ts.config.ValidationSettings;
 import io.github.manoelcampos.java2ts.fixtures.Nullable;
 import io.github.manoelcampos.java2ts.fixtures.Required;
 import org.apache.maven.model.Build;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static io.github.manoelcampos.java2ts.TestSettings.FIXTURES_PACKAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -118,6 +120,47 @@ class GenerateMojoTest {
         assertEquals(expected, settings, "The plugin default values must be the same as the SettingsBuilder ones");
         assertEquals(buildDir.resolve("sample.ts"), settings.outputFile());
         assertTrue(settings.readonlyProperties(), "Read-only properties must be enabled by default");
+    }
+
+    @Test
+    void generatesValidationFileWhenEnabled() throws MojoExecutionException, IOException {
+        mojo.javadoc = false;
+        mojo.validation.enabled = true;
+        mojo.validation.locale = "pt-BR";
+        mojo.execute();
+
+        final String content = Files.readString(buildDir.resolve("validation.generated.ts"));
+        assertTrue(content.contains("import type { Address, Inner, Outer } from \"./sample\";"), content);
+        assertTrue(content.contains("z.config(z.locales.ptBR());"), content);
+    }
+
+    @Test
+    void mapsValidationParameters() {
+        final var params = new ValidationParameters();
+        params.enabled = true;
+        params.outputFile = new File("front/schemas.ts");
+        params.excludeClasses = List.of("a.B");
+        params.excludeClassPatterns = List.of("a.*");
+        params.customSchemasModule = "./custom";
+        params.schemaNameSuffix = "Validator";
+        params.zodConfig = false;
+        params.locale = "pt-BR";
+        params.customTypeMappings = List.of("java.math.BigDecimal:z.string()");
+
+        final var expected = ValidationSettings.builder()
+            .enabled(true).outputFile(Path.of("front/schemas.ts")).excludeClasses(List.of("a.B")).excludeClassPatterns(List.of("a.*"))
+            .customSchemasModule("./custom").schemaNameSuffix("Validator").zodConfig(false).locale("pt-BR")
+            .customTypeMappings(Map.of("java.math.BigDecimal", "z.string()"))
+            .build();
+        assertEquals(expected, params.toSettings());
+    }
+
+    @Test
+    void validationIsDisabledByDefaultWithZodConfigEnabled() {
+        final var defaults = new ValidationParameters().toSettings();
+        assertEquals(ValidationSettings.DEFAULT, defaults, "The plugin default values must be the same as the ValidationSettingsBuilder ones");
+        assertFalse(defaults.enabled());
+        assertTrue(defaults.zodConfig());
     }
 
     @Test
