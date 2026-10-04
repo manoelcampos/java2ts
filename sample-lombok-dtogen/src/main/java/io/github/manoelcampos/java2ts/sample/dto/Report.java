@@ -1,5 +1,6 @@
 package io.github.manoelcampos.java2ts.sample.dto;
 
+import io.github.manoelcampos.java2ts.sample.model.PersonDTO;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;

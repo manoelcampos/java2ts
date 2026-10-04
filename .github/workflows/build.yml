@@ -28,6 +28,9 @@ jobs:
     needs: resolve-java-versions
 
     runs-on: ubuntu-latest
+    env:
+      # The sample projects, which are built and checked using the plugin installed by the job
+      SAMPLES: sample sample-lombok-dtogen
     strategy:
       fail-fast: false
       matrix:
@@ -46,26 +49,25 @@ jobs:
     - name: Build, test (with coverage check) and install the plugin
       run: mvn -B install --file java2ts/pom.xml
 
-    - name: Build the sample project (which generates its TypeScript and validation files)
-      run: mvn -B compile --file sample/pom.xml
+    - name: Build the sample projects (which generate their TypeScript and validation files)
+      run: for sample in $SAMPLES; do mvn -B compile --file "$sample/pom.xml"; done
 
     - name: Set up Node.js
       uses: actions/setup-node@v7
       with:
         node-version: lts/*
         cache: npm
-        cache-dependency-path: sample/frontend/package-lock.json
-
-    - name: Install the sample frontend dependencies (Zod and TypeScript)
-      working-directory: sample/frontend
-      run: npm ci
+        cache-dependency-path: '*/frontend/package-lock.json'
 
     - name: Check the generated TypeScript files compile and the validation schemas work
-      working-directory: sample/frontend
-      run: npm run check
+      run: |
+        for sample in $SAMPLES; do
+          echo "Checking $sample"
+          (cd "$sample/frontend" && npm ci && npm run check)
+        done
 
     - name: Check the committed sample TypeScript files are up to date
-      run: git diff --exit-code sample/frontend/models.generated.ts sample/frontend/validation.generated.ts
+      run: git diff --exit-code -- '*/frontend/*.generated.ts'
 
     - name: Codacy coverage report upload
       if: matrix.java == needs.resolve-java-versions.outputs.last
