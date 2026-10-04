@@ -1,7 +1,5 @@
 package io.github.manoelcampos.java2ts.parser.type;
 
-import io.github.manoelcampos.java2ts.ts.TsArrayType;
-import io.github.manoelcampos.java2ts.ts.TsType;
 
 import java.lang.reflect.AnnotatedArrayType;
 import java.lang.reflect.AnnotatedType;
@@ -12,16 +10,16 @@ import java.util.Optional;
  * {@code byte[]} is handled by the {@link BasicTypeRule}, since it's serialized as a Base64 string.
  * @author Manoel Campos
  */
-public final class ArrayRule implements TypeMappingRule {
+public final class ArrayRule<R> implements TypeMappingRule<R> {
     /**
      * Creates a {@link ArrayRule}.
      */
     public ArrayRule() {/**/}
 
     @Override
-    public Optional<TsType> map(final AnnotatedType type, final TypeMapper mapper) {
+    public Optional<R> map(final AnnotatedType type, final TypeMapper<R> mapper) {
         return type instanceof AnnotatedArrayType array ?
-                Optional.of(new TsArrayType(mapper.map(array.getAnnotatedGenericComponentType()))) :
+                Optional.of(mapper.renderer().array(mapper.map(array.getAnnotatedGenericComponentType()))) :
                 Optional.empty();
     }
 }

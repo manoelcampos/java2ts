@@ -1,6 +1,5 @@
 package io.github.manoelcampos.java2ts.parser.type;
 
-import io.github.manoelcampos.java2ts.ts.TsType;
 
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.AnnotatedWildcardType;
@@ -11,21 +10,21 @@ import java.util.Optional;
  * while {@code ?} and {@code ? super T} are converted to {@code any}.
  * @author Manoel Campos
  */
-public final class WildcardRule implements TypeMappingRule {
+public final class WildcardRule<R> implements TypeMappingRule<R> {
     /**
      * Creates a {@link WildcardRule}.
      */
     public WildcardRule() {/**/}
 
     @Override
-    public Optional<TsType> map(final AnnotatedType type, final TypeMapper mapper) {
+    public Optional<R> map(final AnnotatedType type, final TypeMapper<R> mapper) {
         if (!(type instanceof AnnotatedWildcardType wildcard))
             return Optional.empty();
 
         if (wildcard.getAnnotatedLowerBounds().length > 0)
-            return Optional.of(TsType.ANY);
+            return Optional.of(mapper.renderer().any());
 
         final AnnotatedType[] upperBounds = wildcard.getAnnotatedUpperBounds();
-        return Optional.of(upperBounds.length == 0 ? TsType.ANY : mapper.map(upperBounds[0]));
+        return Optional.of(upperBounds.length == 0 ? mapper.renderer().any() : mapper.map(upperBounds[0]));
     }
 }

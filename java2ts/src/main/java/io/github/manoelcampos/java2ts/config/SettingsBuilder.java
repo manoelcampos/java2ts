@@ -26,6 +26,7 @@ public final class SettingsBuilder {
     private DateMapping mapDate = DateMapping.valueOf(Defaults.MAP_DATE);
     private boolean readonlyProperties = Boolean.parseBoolean(Defaults.READONLY_PROPERTIES);
     private boolean noFileDate = Boolean.parseBoolean(Defaults.NO_FILE_DATE);
+    private ValidationSettings validation = ValidationSettings.DEFAULT;
 
     SettingsBuilder() {/**/}
 
@@ -162,12 +163,22 @@ public final class SettingsBuilder {
     }
 
     /**
+     * Sets how validation schemas are generated.
+     * @param validation the validation settings, which define if the validation file is generated
+     * @return this builder
+     */
+    public SettingsBuilder validation(final ValidationSettings validation) {
+        this.validation = validation;
+        return this;
+    }
+
+    /**
      * {@return a new {@link Settings} object with the values defined in this builder}
      */
     public Settings build() {
         return new Settings(
             outputFileType, outputFile, nullabilityDefinition, optionalPropertiesDeclaration,
             nullableAnnotations, requiredAnnotations, javadocXmlFiles, classSelection,
-            customTypeMappings, mapDate, readonlyProperties, noFileDate);
+            customTypeMappings, mapDate, readonlyProperties, noFileDate, validation);
     }
 }

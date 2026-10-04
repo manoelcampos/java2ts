@@ -36,6 +36,18 @@ public final class Defaults {
     /** The default version of the xml-doclet used to extract JavaDocs. */
     public static final String XML_DOCLET_VERSION = "2.0.3";
 
+    /** Validation schemas are generated only when enabled. */
+    public static final String VALIDATION_ENABLED = "false";
+
+    /** The suffix added to TypeScript type names to define schema names, such as {@code PersonSchema}. */
+    public static final String SCHEMA_NAME_SUFFIX = "Schema";
+
+    /** The Zod configuration (such as the locale of the validation messages) is written into the validation file. */
+    public static final String ZOD_CONFIG = "true";
+
+    /** The name of the validation file, created next to the TypeScript declarations file when no file is given. */
+    public static final String VALIDATION_FILE_NAME = "validation.generated.ts";
+
     /** The most common nullable annotations. */
     public static final Set<String> NULLABLE_ANNOTATIONS = Set.of(
         "org.jspecify.annotations.Nullable",

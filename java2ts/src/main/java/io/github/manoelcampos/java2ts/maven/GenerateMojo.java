@@ -109,11 +109,11 @@ public class GenerateMojo extends AbstractMojo {
     @Parameter(property = "java2ts.mapDate", defaultValue = Defaults.MAP_DATE)
     DateMapping mapDate = DateMapping.valueOf(Defaults.MAP_DATE);
 
-    /** If true, the comment at the beginning of the generated file doesn't include the generation date. */
     /** If true, record components and final fields are declared as read-only properties. */
     @Parameter(property = "java2ts.readonlyProperties", defaultValue = Defaults.READONLY_PROPERTIES)
     boolean readonlyProperties = Boolean.parseBoolean(Defaults.READONLY_PROPERTIES);
 
+    /** If true, the comment at the beginning of the generated file doesn't include the generation date. */
     @Parameter(property = "java2ts.noFileDate", defaultValue = Defaults.NO_FILE_DATE)
     boolean noFileDate = Boolean.parseBoolean(Defaults.NO_FILE_DATE);
 
@@ -127,6 +127,13 @@ public class GenerateMojo extends AbstractMojo {
     /** The version of the xml-doclet used when {@link #javadoc} is enabled. */
     @Parameter(property = "java2ts.xmlDocletVersion", defaultValue = Defaults.XML_DOCLET_VERSION)
     String xmlDocletVersion = Defaults.XML_DOCLET_VERSION;
+
+    /**
+     * The settings to generate validation schemas (disabled by default), grouped inside a {@code <validation>} tag.
+     * Check {@link ValidationParameters}.
+     */
+    @Parameter
+    ValidationParameters validation = new ValidationParameters();
 
     /** Skips the plugin execution. */
     @Parameter(property = "java2ts.skip", defaultValue = "false")
@@ -157,6 +164,8 @@ public class GenerateMojo extends AbstractMojo {
             try (var classLoader = ProjectClassLoader.create(classpath)) {
                 final Path file = new Java2Ts(settings).generateFile(new ClassPathContext(classLoader, classpath));
                 getLog().info("TypeScript file generated at " + file);
+                if (settings.validation().enabled())
+                    getLog().info("Validation file generated at " + settings.validation().outputFile(file));
             }
         } catch (final IOException | DependencyResolutionRequiredException | RuntimeException e) {
             throw new MojoExecutionException("Error generating TypeScript file: " + e.getMessage(), e);
@@ -173,7 +182,7 @@ public class GenerateMojo extends AbstractMojo {
             annotationsOrDefault(nullableAnnotations, Defaults.NULLABLE_ANNOTATIONS),
             annotationsOrDefault(requiredAnnotations, Defaults.REQUIRED_ANNOTATIONS),
             javadocFiles(classpath), selection, CustomTypeMappings.parse(orEmpty(customTypeMappings)),
-            mapDate, readonlyProperties, noFileDate);
+            mapDate, readonlyProperties, noFileDate, validation.toSettings());
     }
 
     private Path outputFilePath() {

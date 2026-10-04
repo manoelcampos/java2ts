@@ -29,6 +29,7 @@ import static java.util.Objects.requireNonNull;
  *                           (such as {@code readonly name: string})
  * @param noFileDate if true, the comment at the beginning of the generated file doesn't include
  *                   the generation date, avoiding changes in the file when nothing else changed
+ * @param validation the settings to generate validation schemas
  * @author Manoel Campos
  */
 public record Settings(
@@ -43,7 +44,8 @@ public record Settings(
     Map<String, String> customTypeMappings,
     DateMapping mapDate,
     boolean readonlyProperties,
-    boolean noFileDate)
+    boolean noFileDate,
+    ValidationSettings validation)
 {
     /**
      * Creates a {@link Settings}, validating the components and making immutable copies of collections.
@@ -55,6 +57,7 @@ public record Settings(
         requireNonNull(optionalPropertiesDeclaration, "optionalPropertiesDeclaration");
         requireNonNull(mapDate, "mapDate");
         requireNonNull(classSelection, "classSelection");
+        requireNonNull(validation, "validation");
         nullableAnnotations = Set.copyOf(nullableAnnotations);
         requiredAnnotations = Set.copyOf(requiredAnnotations);
         javadocXmlFiles = List.copyOf(javadocXmlFiles);

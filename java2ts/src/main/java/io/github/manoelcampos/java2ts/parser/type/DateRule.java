@@ -1,42 +1,23 @@
 package io.github.manoelcampos.java2ts.parser.type;
 
-import io.github.manoelcampos.java2ts.config.DateMapping;
-import io.github.manoelcampos.java2ts.ts.TsBasicType;
-import io.github.manoelcampos.java2ts.ts.TsType;
-
 import java.lang.reflect.AnnotatedType;
-import java.time.temporal.Temporal;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 /**
- * Converts date/time types ({@link Date}, {@link Calendar} and any {@link Temporal},
- * such as {@link java.time.LocalDate} and {@link java.time.LocalDateTime})
- * according to a {@link DateMapping}.
+ * Converts date/time types ({@link java.util.Date}, {@link java.util.Calendar} and any {@link java.time.temporal.Temporal},
+ * such as {@link java.time.LocalDate} and {@link java.time.LocalDateTime}).
+ * Check {@link DateKind} for how they are classified.
+ * @param <R> the type of the result (such as a TypeScript type)
  * @author Manoel Campos
  */
-public final class DateRule implements TypeMappingRule {
-    private static final List<Class<?>> DATE_TYPES = List.of(Date.class, Calendar.class, Temporal.class);
-    private final TsType dateType;
-
+public final class DateRule<R> implements TypeMappingRule<R> {
     /**
-     * Creates a date rule.
-     * @param mapping how date types are converted
+     * Creates a {@link DateRule}.
      */
-    public DateRule(final DateMapping mapping) {
-        this.dateType = new TsBasicType(mapping.tsType());
-    }
+    public DateRule() {/**/}
 
     @Override
-    public Optional<TsType> map(final AnnotatedType type, final TypeMapper mapper) {
-        return AnnotatedTypes.rawClass(type.getType())
-                             .filter(DateRule::isDate)
-                             .map(dateClass -> dateType);
-    }
-
-    private static boolean isDate(final Class<?> aClass) {
-        return DATE_TYPES.stream().anyMatch(dateClass -> dateClass.isAssignableFrom(aClass));
+    public Optional<R> map(final AnnotatedType type, final TypeMapper<R> mapper) {
+        return AnnotatedTypes.rawClass(type.getType()).flatMap(DateKind::of).map(mapper.renderer()::date);
     }
 }

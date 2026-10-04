@@ -22,4 +22,18 @@ public sealed interface TsType permits TsBasicType, TsArrayType, TsReferenceType
     default List<TsType> unionMembers() {
         return List.of(this);
     }
+
+    /**
+     * {@return true if this type explicitly includes a basic type (such as {@code null} or {@code undefined}), false otherwise}
+     * For instance, {@code string | null} and {@code Nullable<string>} (for a {@code T | null} alias) include {@code null}.
+     * @param typeName the name of the basic type to check
+     */
+    default boolean includes(final String typeName) {
+        return switch (this) {
+            case TsBasicType basic -> basic.name().equals(typeName);
+            case TsUnionType union -> union.types().stream().anyMatch(type -> type.includes(typeName));
+            case TsNullableType nullable -> nullable.definition().types().contains(typeName) || nullable.type().includes(typeName);
+            default -> false;
+        };
+    }
 }

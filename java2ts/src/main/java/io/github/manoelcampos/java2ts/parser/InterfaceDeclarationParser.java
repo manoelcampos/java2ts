@@ -29,7 +29,7 @@ import java.util.stream.Stream;
  * @author Manoel Campos
  */
 public final class InterfaceDeclarationParser implements DeclarationParser {
-    private final TypeMapper typeMapper;
+    private final TypeMapper<TsType> typeMapper;
     private final PropertyResolver propertyResolver;
     private final Javadoc javadoc;
 
@@ -39,7 +39,7 @@ public final class InterfaceDeclarationParser implements DeclarationParser {
      * @param propertyResolver the resolver to convert properties
      * @param javadoc where to get documentation from
      */
-    public InterfaceDeclarationParser(final TypeMapper typeMapper, final PropertyResolver propertyResolver, final Javadoc javadoc) {
+    public InterfaceDeclarationParser(final TypeMapper<TsType> typeMapper, final PropertyResolver propertyResolver, final Javadoc javadoc) {
         this.typeMapper = typeMapper;
         this.propertyResolver = propertyResolver;
         this.javadoc = javadoc;
