@@ -52,15 +52,20 @@ class TsTypeTest {
 
     @Test
     void formatsPropertiesWithInvalidIdentifiersAndComments() {
-        assertEquals("    \"first-name\"?: string;", new TsProperty("first-name", STRING, true, "").format());
-        assertEquals("    /**\n     * The name.\n     */\n    $name: string;", new TsProperty("$name", STRING, false, "The name.").format());
+        assertEquals("    \"first-name\"?: string;", new TsProperty("first-name", STRING, true, false, "").format());
+        assertEquals("    /**\n     * The name.\n     */\n    $name: string;", new TsProperty("$name", STRING, false, false, "The name.").format());
+    }
+
+    @Test
+    void formatsReadonlyProperties() {
+        assertEquals("    readonly name?: string;", new TsProperty("name", STRING, true, true, "").format());
     }
 
     @Test
     void formatsInterfaces() {
-        final var props = List.of(new TsProperty("id", TsBasicType.NUMBER, false, ""));
+        final var props = List.of(new TsProperty("id", TsBasicType.NUMBER, false, true, ""));
         final var tsInterface = new TsInterface("Dog", List.of("T"), List.of(new TsReferenceType("Animal"), new TsReferenceType("Pet")), props, "A dog.");
-        assertEquals("/**\n * A dog.\n */\nexport interface Dog<T> extends Animal, Pet {\n    id: number;\n}\n", tsInterface.format());
+        assertEquals("/**\n * A dog.\n */\nexport interface Dog<T> extends Animal, Pet {\n    readonly id: number;\n}\n", tsInterface.format());
     }
 
     @Test

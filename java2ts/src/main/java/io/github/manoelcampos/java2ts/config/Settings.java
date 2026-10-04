@@ -25,6 +25,8 @@ import static java.util.Objects.requireNonNull;
  *                           such as {@code java.util.List<java.math.BigDecimal>})
  *                           to the TypeScript type it must be converted to
  * @param mapDate how date/time types are converted
+ * @param readonlyProperties if true, record components and final fields are declared as read-only properties
+ *                           (such as {@code readonly name: string})
  * @param noFileDate if true, the comment at the beginning of the generated file doesn't include
  *                   the generation date, avoiding changes in the file when nothing else changed
  * @author Manoel Campos
@@ -40,6 +42,7 @@ public record Settings(
     ClassSelection classSelection,
     Map<String, String> customTypeMappings,
     DateMapping mapDate,
+    boolean readonlyProperties,
     boolean noFileDate)
 {
     /**

@@ -15,6 +15,8 @@ import io.github.manoelcampos.java2ts.ts.TsUnionType;
  * Converts Java properties to TypeScript ones, defining their types, nullability, optionality and documentation.
  * <ul>
  *   <li>A property is nullable when it has any of the {@link Settings#nullableAnnotations()}.</li>
+ *   <li>A property is read-only when it's a record component or its field is final,
+ *   and {@link Settings#readonlyProperties()} is enabled.</li>
  *   <li>A property is optional when its type is a Java {@link java.util.Optional}, or when
  *   {@link Settings#requiredAnnotations()} is not empty and the property has none of them
  *   (primitive properties are never optional, since they can't be null).
@@ -49,13 +51,14 @@ public final class PropertyResolver {
         final TsType type = baseType(property, javaOptional);
         final boolean optional = javaOptional || isOptionalByAnnotations(property);
         final String comment = comment(property);
+        final boolean readonly = settings.readonlyProperties() && property.isReadonly();
         if (!optional)
-            return new TsProperty(property.name(), type, false, comment);
+            return new TsProperty(property.name(), type, false, readonly, comment);
 
         final OptionalPropertiesDeclaration declaration = settings.optionalPropertiesDeclaration();
         final TsType optionalType = TsUnionType.combine(type, declaration.extraTypes());
         final boolean questionMark = declaration.usesQuestionMark();
-        return new TsProperty(property.name(), questionMark ? withoutUndefined(optionalType) : optionalType, questionMark, comment);
+        return new TsProperty(property.name(), questionMark ? withoutUndefined(optionalType) : optionalType, questionMark, readonly, comment);
     }
 
     /**

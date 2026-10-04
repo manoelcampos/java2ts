@@ -27,6 +27,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,15 +110,19 @@ public class GenerateMojo extends AbstractMojo {
     DateMapping mapDate = DateMapping.valueOf(Defaults.MAP_DATE);
 
     /** If true, the comment at the beginning of the generated file doesn't include the generation date. */
+    /** If true, record components and final fields are declared as read-only properties. */
+    @Parameter(property = "java2ts.readonlyProperties", defaultValue = Defaults.READONLY_PROPERTIES)
+    boolean readonlyProperties = Boolean.parseBoolean(Defaults.READONLY_PROPERTIES);
+
     @Parameter(property = "java2ts.noFileDate", defaultValue = Defaults.NO_FILE_DATE)
     boolean noFileDate = Boolean.parseBoolean(Defaults.NO_FILE_DATE);
 
     /**
-     * If true, the JavaDocs of the project sources are automatically extracted (using the xml-doclet)
-     * and copied to the TypeScript file.
+     * If true (the default), the JavaDocs of the project sources are automatically extracted (using the xml-doclet)
+     * and copied to the TypeScript file. If the extraction fails, a warning is logged and the file is generated without docs.
      */
-    @Parameter(property = "java2ts.javadoc", defaultValue = "false")
-    boolean javadoc;
+    @Parameter(property = "java2ts.javadoc", defaultValue = Defaults.JAVADOC)
+    boolean javadoc = Boolean.parseBoolean(Defaults.JAVADOC);
 
     /** The version of the xml-doclet used when {@link #javadoc} is enabled. */
     @Parameter(property = "java2ts.xmlDocletVersion", defaultValue = Defaults.XML_DOCLET_VERSION)
@@ -168,7 +173,7 @@ public class GenerateMojo extends AbstractMojo {
             annotationsOrDefault(nullableAnnotations, Defaults.NULLABLE_ANNOTATIONS),
             annotationsOrDefault(requiredAnnotations, Defaults.REQUIRED_ANNOTATIONS),
             javadocFiles(classpath), selection, CustomTypeMappings.parse(orEmpty(customTypeMappings)),
-            mapDate, noFileDate);
+            mapDate, readonlyProperties, noFileDate);
     }
 
     private Path outputFilePath() {
@@ -191,11 +196,22 @@ public class GenerateMojo extends AbstractMojo {
         return files;
     }
 
+    /**
+     * Extracts the JavaDocs of the project sources into a XML file.
+     * Since the extraction is enabled by default, any error just logs a warning instead of failing the build.
+     * @param classpath the project classpath, required by the javadoc tool
+     * @return an Optional with the generated XML file, or an empty Optional if there are no sources or the extraction failed
+     */
     private Optional<Path> extractJavadoc(final List<Path> classpath) {
         final List<Path> sourceRoots = project.getCompileSourceRoots().stream().map(Path::of).toList();
         final Path outputXml = Path.of(project.getBuild().getDirectory(), JAVADOC_XML_FILE);
         getLog().info("Extracting JavaDocs using xml-doclet " + xmlDocletVersion);
-        return new XmlDocletRunner(docletResolver().resolve(xmlDocletVersion)).run(sourceRoots, classpath, outputXml);
+        try {
+            return new XmlDocletRunner(docletResolver().resolve(xmlDocletVersion)).run(sourceRoots, classpath, outputXml);
+        } catch (final IllegalStateException | UncheckedIOException e) {
+            getLog().warn("JavaDocs won't be copied to the TypeScript file. Set java2ts.javadoc to false to skip the extraction. " + e.getMessage());
+            return Optional.empty();
+        }
     }
 
     private DocletClasspathResolver docletResolver() {

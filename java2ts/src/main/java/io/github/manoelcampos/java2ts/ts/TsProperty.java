@@ -10,10 +10,11 @@ import static java.util.Objects.requireNonNullElse;
  * @param name the property name
  * @param type the property type
  * @param optional if the property is declared with a question mark (such as {@code name?: string})
+ * @param readonly if the property is declared as read-only (such as {@code readonly name: string})
  * @param comment the property documentation (may be empty)
  * @author Manoel Campos
  */
-public record TsProperty(String name, TsType type, boolean optional, String comment) {
+public record TsProperty(String name, TsType type, boolean optional, boolean readonly, String comment) {
     private static final Pattern IDENTIFIER = Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
     private static final String INDENT = "    ";
 
@@ -31,6 +32,7 @@ public record TsProperty(String name, TsType type, boolean optional, String comm
      */
     public String format() {
         final String quotedName = IDENTIFIER.matcher(name).matches() ? name : '"' + name + '"';
-        return "%s%s%s%s: %s;".formatted(JsDoc.format(comment, INDENT), INDENT, quotedName, optional ? "?" : "", type.format());
+        final String modifier = readonly ? "readonly " : "";
+        return "%s%s%s%s%s: %s;".formatted(JsDoc.format(comment, INDENT), INDENT, modifier, quotedName, optional ? "?" : "", type.format());
     }
 }

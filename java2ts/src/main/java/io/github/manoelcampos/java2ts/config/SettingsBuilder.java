@@ -24,6 +24,7 @@ public final class SettingsBuilder {
     private ClassSelection classSelection = ClassSelection.EMPTY;
     private Map<String, String> customTypeMappings = Map.of();
     private DateMapping mapDate = DateMapping.valueOf(Defaults.MAP_DATE);
+    private boolean readonlyProperties = Boolean.parseBoolean(Defaults.READONLY_PROPERTIES);
     private boolean noFileDate = Boolean.parseBoolean(Defaults.NO_FILE_DATE);
 
     SettingsBuilder() {/**/}
@@ -141,6 +142,16 @@ public final class SettingsBuilder {
     }
 
     /**
+     * Sets if record components and final fields are declared as read-only properties.
+     * @param readonlyProperties true to declare them as read-only (such as {@code readonly name: string}), false otherwise
+     * @return this builder
+     */
+    public SettingsBuilder readonlyProperties(final boolean readonlyProperties) {
+        this.readonlyProperties = readonlyProperties;
+        return this;
+    }
+
+    /**
      * Sets if the generation date is left out of the comment at the beginning of the file.
      * @param noFileDate true to leave the date out (avoiding changes in the file when nothing else changed), false to include it
      * @return this builder
@@ -157,6 +168,6 @@ public final class SettingsBuilder {
         return new Settings(
             outputFileType, outputFile, nullabilityDefinition, optionalPropertiesDeclaration,
             nullableAnnotations, requiredAnnotations, javadocXmlFiles, classSelection,
-            customTypeMappings, mapDate, noFileDate);
+            customTypeMappings, mapDate, readonlyProperties, noFileDate);
     }
 }

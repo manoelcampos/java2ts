@@ -49,18 +49,18 @@ class GenerateMojoTest {
     }
 
     @Test
-    void generatesDeclarationFileWithDefaultName() throws MojoExecutionException, IOException {
+    void generatesDeclarationFileWithDefaultNameAndWithoutJavadocWhenDisabled() throws MojoExecutionException, IOException {
         mojo.outputFileType = OutputFileType.declarationFile;
+        mojo.javadoc = false;
         mojo.execute();
         final String content = Files.readString(buildDir.resolve("sample.d.ts"));
-        assertTrue(content.contains("export interface Address {\n    street: string;"), content);
+        assertTrue(content.contains("export interface Address {\n    readonly street: string;"), content);
         assertTrue(content.contains("export interface Outer {"));
         assertFalse(content.contains("/**"));
     }
 
     @Test
     void generatesImplementationFileWithJavadocByDefault() throws MojoExecutionException, IOException {
-        mojo.javadoc = true;
         mojo.customTypeMappings = List.of("java.lang.Integer:bigint");
         mojo.execute();
 
@@ -68,6 +68,18 @@ class GenerateMojoTest {
         assertTrue(content.contains("     * the street name\n"), content);
         assertTrue(content.contains("number?: bigint | null;"), content);
         assertTrue(Files.exists(buildDir.resolve("java2ts/javadoc.xml")));
+    }
+
+    @Test
+    void generatesFileWithoutJavadocWhenExtractionFails(@TempDir final Path sourceDir) throws MojoExecutionException, IOException {
+        Files.writeString(sourceDir.resolve("Broken.java"), "public class Broken { invalid }");
+        mojo.project.getCompileSourceRoots().clear();
+        mojo.project.addCompileSourceRoot(sourceDir.toString());
+        mojo.execute();
+
+        final String content = Files.readString(buildDir.resolve("sample.ts"));
+        assertTrue(content.contains("export interface Address {"), content);
+        assertFalse(content.contains("the street name"));
     }
 
     @Test
@@ -96,11 +108,16 @@ class GenerateMojoTest {
     @Test
     void createsSettingsWithDefaultValues() {
         final var defaultMojo = new GenerateMojo();
+        assertTrue(defaultMojo.javadoc, "JavaDoc extraction must be enabled by default");
+
+        // Disables the JavaDoc extraction, since it adds a XML file to the settings
+        defaultMojo.javadoc = false;
         defaultMojo.project = mojo.project;
         final var settings = defaultMojo.settings(List.of());
         final var expected = Settings.builder().outputFile(settings.outputFile()).build();
         assertEquals(expected, settings, "The plugin default values must be the same as the SettingsBuilder ones");
         assertEquals(buildDir.resolve("sample.ts"), settings.outputFile());
+        assertTrue(settings.readonlyProperties(), "Read-only properties must be enabled by default");
     }
 
     @Test
@@ -115,7 +132,6 @@ class GenerateMojoTest {
     @Test
     void failsToResolveDocletWithoutRepositorySystem() {
         mojo.docletResolver = null;
-        mojo.javadoc = true;
         assertThrows(MojoExecutionException.class, mojo::execute);
     }
 }

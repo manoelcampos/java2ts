@@ -98,7 +98,24 @@ class Java2TsTest {
         final var model = io.github.manoelcampos.java2ts.fixtures.ClassRetainedModel.class;
         assertContainsAll(generate(settings, model, io.github.manoelcampos.java2ts.fixtures.ClassRetainedModel.Rec.class),
             "    fieldAnnotated: string;", "    getterAnnotated: string;", "    notAnnotated?: string | null;",
-            "    annotated: string;", "    other?: string | null;");
+            "    readonly annotated: string;", "    readonly other?: string | null;");
+    }
+
+    @Test
+    void convertsRecordComponentsAndFinalFieldsToReadonlyProperties() {
+        final String output = generate(TestSettings.builder().build(), io.github.manoelcampos.java2ts.fixtures.Point.class, Address.class);
+        assertContainsAll(output,
+            "export interface Point {\n    readonly x: number;\n    y: number;\n    readonly label?: string | null;\n    distance: number;\n}",
+            "    readonly street: string;");
+        assertTrue(generateAll().contains("export interface Person extends AbstractModel {\n    name: string;"), "Non-final fields must not be readonly");
+    }
+
+    @Test
+    void doesNotDeclareReadonlyPropertiesWhenDisabled() {
+        final var settings = TestSettings.builder().readonlyProperties(false).build();
+        final String output = generate(settings, io.github.manoelcampos.java2ts.fixtures.Point.class, Address.class);
+        assertContainsAll(output, "    x: number;", "    street: string;");
+        assertFalse(output.contains("readonly"));
     }
 
     @Test
@@ -141,7 +158,7 @@ class Java2TsTest {
     @Test
     void convertsRecordsAndGenerics() {
         assertContainsAll(generateAll(),
-            "export interface Address {\n    street: string;\n    number?: number | null;\n    complements?: (string | null)[] | null;\n}",
+            "export interface Address {\n    readonly street: string;\n    readonly number?: number | null;\n    readonly complements?: (string | null)[] | null;\n}",
             "export interface ModelRecord<T> {\n}",
             "export interface PersonDTO extends ModelRecord<Person> {",
             "nested?: Record<string, Record<number, Address>[]> | null;",
@@ -173,7 +190,7 @@ class Java2TsTest {
             "countByStatus?: Partial<Record<Status, number>> | null;",
             "namesById?: Record<number, string> | null;",
             "objectKeys?: Record<string, string> | null;",
-            "    /**\n     * @deprecated\n     */\n    oldField?: string | null;");
+            "    /**\n     * @deprecated\n     */\n    readonly oldField?: string | null;");
     }
 
     @Test

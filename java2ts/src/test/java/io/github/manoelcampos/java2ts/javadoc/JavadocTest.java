@@ -74,7 +74,7 @@ class JavadocTest {
         final String output = new Java2Ts(settings).generate(List.of(Person.class, Address.class));
         assertTrue(output.contains("/**\n * Base interface for all models.\n * @author Manoel Campos\n */\nexport interface BaseModel {\n    /**\n     * Returns the model id\n     */\n    id?: number | null;"), output);
         assertTrue(output.contains("    /**\n     * The person's name.\n     */\n    name: string;"), output);
-        assertTrue(output.contains("    /**\n     * the street name\n     */\n    street: string;"), output);
+        assertTrue(output.contains("    /**\n     * the street name\n     */\n    readonly street: string;"), output);
     }
 
     @Test

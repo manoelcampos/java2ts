@@ -9,6 +9,25 @@ export interface AbstractBaseModel extends BaseModel {
 }
 
 /**
+ * An error returned by a REST API.
+ * Lombok's `@Value` makes all fields private and final, so they become read-only TypeScript properties.
+ */
+export interface ApiError {
+    /**
+     * The HTTP status code.
+     */
+    readonly status: number;
+    /**
+     * A message describing the error.
+     */
+    readonly message: string;
+    /**
+     * When the error happened.
+     */
+    readonly timestamp: string;
+}
+
+/**
  * Base interface for all models.
  * {@link Serializable} is ignored when generating TypeScript, since it's not useful for the frontend.
  */
@@ -37,9 +56,9 @@ export interface Country extends AbstractBaseModel {
  * A {@link DTORecord Data Transfer Object} for {@link Country}.
  */
 export interface CountryDTO extends DTORecord<Country> {
-    id?: number | null;
-    name: string;
-    code: string;
+    readonly id?: number | null;
+    readonly name: string;
+    readonly code: string;
 }
 
 /**
@@ -56,15 +75,15 @@ export interface PageResponse<T> {
     /**
      * the items in the page
      */
-    content?: T[] | null;
+    readonly content?: T[] | null;
     /**
      * the page number, starting from 0
      */
-    page: number;
+    readonly page: number;
     /**
      * the total number of items in all pages
      */
-    totalElements: number;
+    readonly totalElements: number;
 }
 
 /**
@@ -118,16 +137,16 @@ export interface Person extends AbstractBaseModel {
  * A {@link DTORecord Data Transfer Object} for {@link Person}.
  */
 export interface PersonDTO extends DTORecord<Person> {
-    id?: number | null;
-    name: string;
-    email?: string | null;
-    birthDate: string;
-    createdAt?: string | null;
-    countryId: number;
-    partnerId?: number | null;
-    status: Status;
-    phones: Phone[];
-    loginAttempts: number;
+    readonly id?: number | null;
+    readonly name: string;
+    readonly email?: string | null;
+    readonly birthDate: string;
+    readonly createdAt?: string | null;
+    readonly countryId: number;
+    readonly partnerId?: number | null;
+    readonly status: Status;
+    readonly phones: Phone[];
+    readonly loginAttempts: number;
 }
 
 /**
@@ -137,11 +156,11 @@ export interface Phone {
     /**
      * the phone type, such as mobile or home
      */
-    type?: string | null;
+    readonly type?: string | null;
     /**
      * the phone number
      */
-    number?: string | null;
+    readonly number?: string | null;
 }
 
 /**
@@ -151,27 +170,27 @@ export interface Report<N extends number> {
     /**
      * the report title
      */
-    title: string;
+    readonly title: string;
     /**
      * a page of people DTOs
      */
-    people: PageResponse<PersonDTO>;
+    readonly people: PageResponse<PersonDTO>;
     /**
      * a list of (latitude, longitude) pairs, mapped to a TypeScript tuple array in the plugin configuration
      */
-    coordinates?: [number, number][] | null;
+    readonly coordinates?: [number, number][] | null;
     /**
      * a list of tag groups, which is not affected by the custom mapping of the coordinates
      */
-    tags?: string[][] | null;
+    readonly tags?: string[][] | null;
     /**
      * totals by category
      */
-    totals?: Record<string, N[]> | null;
+    readonly totals?: Record<string, N[]> | null;
     /**
      * the sum of all totals, mapped to string in the plugin configuration
      */
-    grandTotal?: string | null;
+    readonly grandTotal?: string | null;
 }
 
 /**

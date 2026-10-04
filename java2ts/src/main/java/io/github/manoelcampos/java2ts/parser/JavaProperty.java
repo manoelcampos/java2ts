@@ -3,6 +3,9 @@ package io.github.manoelcampos.java2ts.parser;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.AnnotatedType;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.RecordComponent;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +38,18 @@ public record JavaProperty(String name, AnnotatedType type, List<AnnotatedElemen
      */
     public JavaProperty withName(final String newName) {
         return new JavaProperty(newName, type, elements);
+    }
+
+    /**
+     * {@return true if the property can't be changed, false otherwise}
+     * A property is read-only when it's a record component or its backing field is final.
+     */
+    public boolean isReadonly() {
+        return elements.stream().anyMatch(element -> switch (element) {
+            case RecordComponent component -> true;
+            case Field field -> Modifier.isFinal(field.getModifiers());
+            default -> false;
+        });
     }
 
     /**

@@ -68,4 +68,5 @@ To support a new Java type, create a `TypeMappingRule` and register it in `TypeM
 - The xml-doclet changes the thread context class loader. `XmlDocletRunner` restores it.
 - Annotations with CLASS retention (such as `lombok.NonNull`) are not visible to reflection. They're read from class files by `ClassFileAnnotations`.
 - The Mojo runs in the `compile` phase, after the compiler, so that `mvn compile` generates the file.
+- JavaDoc extraction is on by default (`java2ts.javadoc`). Any extraction error (doclet download, javadoc tool) only logs a warning, so it never breaks the user's build.
 - Classes are loaded in an isolated `URLClassLoader` with the platform class loader as parent, so plugin dependencies don't leak into the conversion.

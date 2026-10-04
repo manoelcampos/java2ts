@@ -16,8 +16,11 @@
         <lombok.version>1.18.48</lombok.version>
         <dtogen.version>2.1.9</dtogen.version>
 
-        <!-- Just set this property to copy the JavaDocs from the Java classes to the TypeScript file. -->
-        <java2ts.javadoc>true</java2ts.javadoc>
+        <!-- JavaDocs are copied to the TypeScript file by default. Uncomment to disable it. -->
+        <!-- <java2ts.javadoc>false</java2ts.javadoc> -->
+
+        <!-- Records and final fields become readonly TypeScript properties by default. Uncomment to disable it. -->
+        <!-- <java2ts.readonlyProperties>false</java2ts.readonlyProperties> -->
     </properties>
 
     <dependencies>
