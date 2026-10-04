@@ -1,0 +1,20 @@
+title: "java2ts"
+description: "A slim Java 25+ Maven plugin that converts Java classes, records, enums and interfaces into TypeScript declarations, including JavaDocs."
+google_analytics:
+show_downloads: true
+theme: jekyll-theme-architect
+encoding: utf-8
+
+exclude:
+  - CONTRIBUTING.md
+  - AGENTS.md
+  - .github
+  - .gitignore
+
+plugins:
+  - jekyll-mentions
+  - jemoji
+
+webrick:
+  headers:
+    keywords: "typescript,typescript-generator,java,java25,maven-plugin,javadoc,java2ts"

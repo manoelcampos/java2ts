@@ -1,0 +1,63 @@
+name: build
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+  workflow_call:  # allows calling this workflow from other ones (such as the deploy)
+
+jobs:
+  resolve-java-versions:
+
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      last: ${{ steps.set-matrix.outputs.last }}
+
+    steps:
+    - uses: actions/checkout@v7
+    - id: set-matrix
+      name: Read java versions from .sdkmanrc
+      run: |
+        versions=$(grep -E '^java=' .sdkmanrc | cut -d= -f2)
+        echo "matrix=$(echo "$versions" | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
+        echo "last=$(echo "$versions" | tail -n1)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: resolve-java-versions
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ${{ fromJson(needs.resolve-java-versions.outputs.matrix) }}
+
+    steps:
+    - uses: actions/checkout@v7
+    - name: Write java-version file for ${{ matrix.java }}
+      run: echo "java=${{ matrix.java }}" > "$RUNNER_TEMP/.sdkmanrc"
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@v6
+      with:
+        java-version-file: '${{ runner.temp }}/.sdkmanrc'
+        cache: maven
+
+    - name: Build, test (with coverage check) and install the plugin
+      run: mvn -B install --file java2ts/pom.xml
+
+    - name: Build the sample project (which generates its TypeScript file)
+      run: mvn -B compile --file sample/pom.xml
+
+    - name: Check the generated TypeScript file compiles
+      run: npx --yes --package typescript tsc --noEmit --strict sample/frontend/models.generated.ts
+
+    - name: Check the committed sample TypeScript file is up to date
+      run: git diff --exit-code sample/frontend/models.generated.ts
+
+    - name: Codacy coverage report upload
+      if: matrix.java == needs.resolve-java-versions.outputs.last
+      env:
+        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+      run: |
+        test -z "$CODACY_PROJECT_TOKEN" || bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r java2ts/target/site/jacoco/jacoco.xml
