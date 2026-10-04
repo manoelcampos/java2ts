@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # The sample projects, which are built and checked using the plugin installed by the job
-      SAMPLES: sample sample-lombok-dtogen
+      SAMPLES: samples/sample samples/sample-lombok-dtogen
     strategy:
       fail-fast: false
       matrix:
@@ -57,7 +57,7 @@ jobs:
       with:
         node-version: lts/*
         cache: npm
-        cache-dependency-path: '*/frontend/package-lock.json'
+        cache-dependency-path: 'samples/*/frontend/package-lock.json'
 
     - name: Check the generated TypeScript files compile and the validation schemas work
       run: |
@@ -67,7 +67,7 @@ jobs:
         done
 
     - name: Check the committed sample TypeScript files are up to date
-      run: git diff --exit-code -- '*/frontend/*.generated.ts'
+      run: git diff --exit-code -- 'samples/*/frontend/*.generated.ts'
 
     - name: Codacy coverage report upload
       if: matrix.java == needs.resolve-java-versions.outputs.last

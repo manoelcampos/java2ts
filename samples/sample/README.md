@@ -12,8 +12,8 @@ It has:
 - a [class with final fields](src/main/java/io/github/manoelcampos/java2ts/sample/dto/ApiError.java), which become `readonly` properties;
 - an [enum](src/main/java/io/github/manoelcampos/java2ts/sample/model/Status.java), a [record](src/main/java/io/github/manoelcampos/java2ts/sample/model/Phone.java) and generic records ([PageResponse](src/main/java/io/github/manoelcampos/java2ts/sample/dto/PageResponse.java) and [Report](src/main/java/io/github/manoelcampos/java2ts/sample/dto/Report.java));
 - Jakarta Validation, JSpecify and Jackson annotations, which define required, nullable and ignored properties;
-- [custom type mappings](../README.md#8-custom-type-mappings) with nested generic types;
-- [validation schemas](../README.md#9-generating-validation-schemas) generated from the Bean Validation annotations,
+- [custom type mappings](../../README.md#8-custom-type-mappings) with nested generic types;
+- [validation schemas](../../README.md#9-generating-validation-schemas) generated from the Bean Validation annotations,
   using Zod 4 (which implements [Standard Schema](https://standardschema.dev)) with Brazilian Portuguese messages.
   The `Phone` schema is excluded from the generation and written by hand in [frontend/validation.custom.ts](frontend/validation.custom.ts).
 
@@ -26,7 +26,7 @@ The sample uses the java2ts version that is the same as its own version, so inst
 ```bash
 # From the repository root
 mvn -f java2ts/pom.xml install
-mvn -f sample/pom.xml compile
+mvn -f samples/sample/pom.xml compile
 ```
 
 The results are the [frontend/models.generated.ts](frontend/models.generated.ts) and
@@ -35,7 +35,7 @@ You can check that they compile (in strict mode) and that the schemas accept val
 (using [frontend/validation.check.ts](frontend/validation.check.ts)) with:
 
 ```bash
-cd sample/frontend
+cd samples/sample/frontend
 npm ci
 npm run check
 ```

@@ -14,10 +14,10 @@ It is a slim, single-module alternative to typescript-generator, focused only on
 |---|---|
 | `java2ts/` | The plugin/library (the only module that is published). |
 | `java2ts/src/test/java/.../fixtures` | Java classes converted by the tests. Their JavaDocs are used by the JavaDoc tests, so changing them may break tests. |
-| `sample/` | The base sample project: plain JPA entities, hand-written DTO records and validation annotations. The README examples come from it. |
-| `sample-lombok-dtogen/` | The same model using Lombok (`@Getter`/`@Setter`, `@Value`) and DTOGen (generated DTO records). |
-| `*/frontend/*.generated.ts` | The committed output of each sample (TypeScript types and Zod schemas). CI fails if they are out of date. |
-| `*/frontend/` | In each sample, a small npm project (Zod 4, TypeScript, tsx) whose `npm run check` type-checks the generated files and runs `validation.check.ts` against the schemas. |
+| `samples/sample/` | The base sample project: plain JPA entities, hand-written DTO records and validation annotations. The README examples come from it. |
+| `samples/sample-lombok-dtogen/` | The same model using Lombok (`@Getter`/`@Setter`, `@Value`) and DTOGen (generated DTO records). |
+| `samples/*/frontend/*.generated.ts` | The committed output of each sample (TypeScript types and Zod schemas). CI fails if they are out of date. |
+| `samples/*/frontend/` | In each sample, a small npm project (Zod 4, TypeScript, tsx) whose `npm run check` type-checks the generated files and runs `validation.check.ts` against the schemas. |
 | `.github/workflows/` | `build.yml` (build/test/sample check) and `deploy.yml` (Maven Central release on `v*.*.*` tags). |
 | `.sdkmanrc` | JDK versions. Each `java=` line is a version in the CI build matrix. |
 
@@ -27,9 +27,9 @@ Requires JDK 25+ and Maven 3.9+.
 
 ```bash
 mvn -f java2ts/pom.xml install    # compile, NullAway check, tests, JaCoCo check (>= 80% lines and branches)
-mvn -f sample/pom.xml compile                   # regenerates sample/frontend/*.generated.ts (needs the plugin installed)
-mvn -f sample-lombok-dtogen/pom.xml compile     # the same for the Lombok/DTOGen sample
-cd sample/frontend && npm ci && npm run check   # tsc --strict over the generated files + runs the schemas (do it for both samples)
+mvn -f samples/sample/pom.xml compile                   # regenerates samples/sample/frontend/*.generated.ts (needs the plugin installed)
+mvn -f samples/sample-lombok-dtogen/pom.xml compile     # the same for the Lombok/DTOGen sample
+cd samples/sample/frontend && npm ci && npm run check   # tsc --strict over the generated files + runs the schemas (do it for both samples)
 ```
 
 After changing how the output looks, rebuild both samples and commit the regenerated `*.generated.ts` files.
