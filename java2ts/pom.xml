@@ -100,26 +100,17 @@
                     </plugin>
 
                     <!--
-                    Pinned because, with maven-install-plugin 3.2.0, the central-publishing-maven-plugin 0.11.0
-                    doesn't delete the maven-metadata-central-staging.xml files before bundling,
-                    and the Central Portal rejects the bundle ("content that does NOT have a .pom file").
-                    -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-install-plugin</artifactId>
-                        <version>3.1.4</version>
-                    </plugin>
-
-                    <!--
                     Plugin to deploy to the maven central using the new
                     Central Portal at https://central.sonatype.com.
                     Credentials are defined into the local repo settings.xml
                     https://central.sonatype.org/publish/publish-portal-maven
+                    Requires 0.12.0+ with Maven 3.10+, which names the staging metadata files maven-metadata-local.xml:
+                    older versions don't delete them before bundling and the Central Portal rejects the bundle.
                     -->
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.11.0</version>
+                        <version>0.12.0</version>
                         <extensions>true</extensions>
                         <configuration>
                             <!-- The id of the server tag inside the local maven settings.xml file-->
