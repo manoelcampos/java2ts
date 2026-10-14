@@ -1,9 +1,9 @@
 package io.github.manoelcampos.java2ts.sample.dto;
 
 import io.github.manoelcampos.java2ts.sample.model.Country;
+import io.github.manoelcampos.java2ts.sample.validation.CountryCode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -16,7 +16,7 @@ import org.jspecify.annotations.Nullable;
 public record CountryDTO(
     @Nullable Long id,
     @NotNull @NotBlank String name,
-    @NotNull @Size(min = 2, max = 2) String code)
+    @CountryCode String code)
 {
     /**
      * Creates a DTO from a country.

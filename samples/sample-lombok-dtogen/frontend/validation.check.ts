@@ -4,8 +4,8 @@
  * Run with: npm run check
  */
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import type { PersonDTO } from "./models.generated";
-import { PersonDTOSchema } from "./validation.generated";
+import type { CountryDTO, PersonDTO } from "./models.generated";
+import { CountryDTOSchema, PersonDTOSchema } from "./validation.generated";
 
 const validPerson: PersonDTO = {
     name: "Maria",
@@ -48,6 +48,16 @@ const invalidIssues = issuesOf(PersonDTOSchema, invalidPerson);
 const invalidPaths = invalidIssues.map(pathOf).sort();
 if (JSON.stringify(invalidPaths) !== JSON.stringify([...expectedInvalidPaths].sort()))
     failures.push(`invalid person issues at [${invalidPaths}], expected [${expectedInvalidPaths}]`);
+
+// The code has a composed constraint (@CountryCode), made of @Pattern and @Size
+const validCountry: CountryDTO = { name: "Brasil", code: "BR" };
+const countryIssues = issuesOf(CountryDTOSchema, validCountry);
+if (countryIssues.length > 0)
+    failures.push("valid country rejected: " + countryIssues.map(issue => `${pathOf(issue)}: ${issue.message}`).join("; "));
+
+const invalidCodes = ["br", "BRA"].filter(code => issuesOf(CountryDTOSchema, { ...validCountry, code }).length === 0);
+if (invalidCodes.length > 0)
+    failures.push(`invalid country codes accepted: ${invalidCodes}`);
 
 const portuguese = invalidIssues.some(issue => issue.message.includes("inválid"));
 if (!portuguese)

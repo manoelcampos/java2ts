@@ -31,13 +31,13 @@ export const BaseModelSchema: z.ZodType<BaseModel> = z.object({
 export const CountrySchema: z.ZodType<Country> = z.object({
     id: z.int().nullish(),
     name: z.string().regex(/\S/),
-    code: z.string().length(2),
+    code: z.string().regex(/^(?:[A-Z]{2})$/).length(2),
 });
 
 export const CountryDTOSchema: z.ZodType<CountryDTO> = z.object({
     id: z.int().nullish(),
     name: z.string().regex(/\S/),
-    code: z.string().length(2),
+    code: z.string().regex(/^(?:[A-Z]{2})$/).length(2),
 });
 
 export const DTORecordSchema = <T>(TSchema: z.ZodType<T>): z.ZodType<DTORecord<T>> => z.object({
