@@ -1,5 +1,7 @@
 package io.github.manoelcampos.java2ts.validation;
 
+import io.github.manoelcampos.java2ts.constraint.ComposingConstraint;
+import io.github.manoelcampos.java2ts.constraint.ConstraintAnnotations;
 import io.github.manoelcampos.java2ts.validation.model.BooleanConstraint;
 import io.github.manoelcampos.java2ts.validation.model.Constraint;
 import io.github.manoelcampos.java2ts.validation.model.DigitsConstraint;
@@ -14,7 +16,6 @@ import io.github.manoelcampos.java2ts.validation.model.UrlConstraint;
 
 import java.lang.annotation.Annotation;
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,13 +31,14 @@ import java.util.stream.Stream;
  * Annotations are read by name, so there is no compile-time dependency on them.
  *
  * <p>A constraint annotation (one annotated with {@code @Constraint}) that isn't supported
- * fails the conversion, so that backend and frontend validations can't drift.</p>
+ * fails the conversion, so that backend and frontend validations can't drift.
+ * Custom constraints that are only composed of other constraints are supported.</p>
  * @author Manoel Campos
  */
 public final class ConstraintReader {
     private static final List<String> STANDARD_PACKAGES = List.of("jakarta.validation.constraints.", "javax.validation.constraints.");
     private static final String HIBERNATE_PACKAGE = "org.hibernate.validator.constraints.";
-    private static final Set<String> CONSTRAINT_ANNOTATIONS = Set.of("jakarta.validation.Constraint", "javax.validation.Constraint");
+    private static final String HAND_WRITTEN_SCHEMA_ADVICE = "Exclude the class from validation and write its schema by hand";
 
     /** Constraints that don't change the schema, since they only make a property required. */
     private static final String NOT_NULL = "NotNull";
@@ -91,21 +93,51 @@ public final class ConstraintReader {
 
     /**
      * Reads the constraints defined by an annotation.
+     * A composed constraint (a {@code @Constraint} annotation with no validator, placed on other constraints)
+     * is converted to the constraints it's composed of.
      * @param annotation the annotation to read
      * @return the constraints, or an empty list if the annotation isn't a constraint
      *         (or is a constraint that doesn't change the schema, such as {@code @NotNull})
      * @throws UnsupportedValidationException if the annotation is a constraint that isn't supported
      */
     public List<Constraint> read(final Annotation annotation) {
-        final var attributes = new AnnotationAttributes(annotation);
+        return read(annotation, Map.of(), CompositionPath.ROOT);
+    }
+
+    /**
+     * {@return the constraints defined by an annotation}
+     * @param annotation the annotation to read
+     * @param overrides values that replace the ones of some attributes of the annotation, indexed by the attribute name
+     *        (defined by the composed constraint the annotation is inside of)
+     * @param path the composed constraints the annotation is inside of
+     */
+    private List<Constraint> read(final Annotation annotation, final Map<String, Object> overrides, final CompositionPath path) {
+        final AnnotationAttributes attributes = path.attributesOf(annotation, overrides);
         final Function<AnnotationAttributes, List<Constraint>> factory = factories.get(annotation.annotationType().getName());
         if (factory != null)
             return factory.apply(attributes);
 
         if (isConstraint(annotation))
-            throw unsupported(attributes.simpleName());
+            return readComposed(attributes, path);
 
-        return attributes.nestedAnnotations().stream().flatMap(nested -> read(nested).stream()).toList();
+        return attributes.nestedAnnotations().stream().flatMap(nested -> read(nested, Map.of(), path).stream()).toList();
+    }
+
+    /**
+     * {@return the constraints a composed constraint is made of}, with the attribute values it overrides
+     * @param composed the attributes of the composed constraint to read
+     * @param path the composed constraints the annotation is inside of
+     * @throws UnsupportedValidationException if the constraint can't be converted from its composing constraints
+     */
+    private List<Constraint> readComposed(final AnnotationAttributes composed, final CompositionPath path) {
+        final var definition = new ConstraintDefinition(composed.annotation().annotationType());
+        definition.checkComposable();
+        final CompositionPath innerPath = path.enter(composed, definition.reportsAsSingleViolation());
+        final List<ComposingConstraint> composing = definition.composingConstraints();
+        final AttributeOverrides overrides = AttributeOverrides.of(composed, composing);
+        return composing.stream()
+                        .flatMap(constraint -> read(constraint.annotation(), overrides.valuesFor(constraint), innerPath).stream())
+                        .toList();
     }
 
     /**
@@ -113,8 +145,7 @@ public final class ConstraintReader {
      * @param annotation the annotation to check
      */
     public static boolean isConstraint(final Annotation annotation) {
-        return Arrays.stream(annotation.annotationType().getAnnotations())
-                     .anyMatch(meta -> CONSTRAINT_ANNOTATIONS.contains(meta.annotationType().getName()));
+        return ConstraintAnnotations.isConstraint(annotation);
     }
 
     /**
@@ -122,8 +153,16 @@ public final class ConstraintReader {
      * @param simpleName the simple name of the annotation
      */
     static UnsupportedValidationException unsupported(final String simpleName) {
-        return new UnsupportedValidationException(
-            "constraint @%s isn't supported. Exclude the class from validation and write its schema by hand".formatted(simpleName));
+        return new UnsupportedValidationException("constraint @%s isn't supported. %s".formatted(simpleName, HAND_WRITTEN_SCHEMA_ADVICE));
+    }
+
+    /**
+     * {@return an exception indicating a constraint annotation isn't supported}
+     * @param simpleName the simple name of the annotation
+     * @param reason why the annotation isn't supported, which is included in the exception message
+     */
+    static UnsupportedValidationException unsupported(final String simpleName, final String reason) {
+        return new UnsupportedValidationException("constraint @%s isn't supported: %s. %s".formatted(simpleName, reason, HAND_WRITTEN_SCHEMA_ADVICE));
     }
 
     private static List<Constraint> length(final AnnotationAttributes attrs) {
@@ -188,7 +227,7 @@ public final class ConstraintReader {
                                    attrs.intValue("port") != -1 || !attrs.string(REGEXP).equals(ANY_REGEXP);
         if (restricted)
             throw new UnsupportedValidationException(
-                "@URL with protocol, host, port or regexp isn't supported. Exclude the class from validation and write its schema by hand");
+                "@URL with protocol, host, port or regexp isn't supported. " + HAND_WRITTEN_SCHEMA_ADVICE);
 
         return List.of(new UrlConstraint(attrs.message()));
     }

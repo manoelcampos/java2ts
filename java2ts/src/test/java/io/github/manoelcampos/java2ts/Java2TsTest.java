@@ -2,6 +2,7 @@ package io.github.manoelcampos.java2ts;
 
 import io.github.manoelcampos.java2ts.config.ClassSelection;
 import io.github.manoelcampos.java2ts.config.DateMapping;
+import io.github.manoelcampos.java2ts.config.Defaults;
 import io.github.manoelcampos.java2ts.config.NullabilityDefinition;
 import io.github.manoelcampos.java2ts.config.OptionalPropertiesDeclaration;
 import io.github.manoelcampos.java2ts.config.Settings;
@@ -14,6 +15,7 @@ import io.github.manoelcampos.java2ts.fixtures.PersonDTO;
 import io.github.manoelcampos.java2ts.fixtures.PersonPage;
 import io.github.manoelcampos.java2ts.fixtures.Wildcards;
 import io.github.manoelcampos.java2ts.scan.ClassPathContext;
+import io.github.manoelcampos.java2ts.validation.fixtures.ComposedRequired;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -282,6 +284,23 @@ class Java2TsTest {
         assertContainsAll(output, "addresses?: any[] | null;", "status?: any;");
         assertFalse(output.contains("export interface Address"));
         assertFalse(output.contains("export type Status"));
+    }
+
+    @Test
+    void readsRequiredAnnotationsInsideComposedConstraints() {
+        final var settings = TestSettings.builder().requiredAnnotations(Defaults.REQUIRED_ANNOTATIONS).build();
+        assertContainsAll(generate(settings, ComposedRequired.Values.class, ComposedRequired.NullableDirect.class),
+            "    readonly code: string;", "    readonly text: string;", "    readonly nested: string;",
+            "    readonly plain?: string | null;", "    readonly validated: string;", "    readonly cycle?: string | null;",
+            "export interface NullableDirect {\n    readonly code: string | null;\n}");
+    }
+
+    @Test
+    void failsForNullablePropertyWithComposedRequiredAnnotation() {
+        final var settings = TestSettings.builder().requiredAnnotations(Defaults.REQUIRED_ANNOTATIONS).build();
+        final var ex = assertThrows(IllegalStateException.class, () -> generate(settings, ComposedRequired.NullableComposed.class));
+        final var expected = "ComposedRequired$NullableComposed.code: the property has a nullable annotation, but its constraint @RequiredCode is composed of a required annotation";
+        assertTrue(String.valueOf(ex.getMessage()).contains(expected), ex.getMessage());
     }
 
     @Test

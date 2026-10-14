@@ -255,10 +255,13 @@ The rules are:
 
 1. If `requiredAnnotations` is not empty, a property without any of these annotations is **optional**.
    The defaults are `@NotNull`, `@NotBlank` and `@NotEmpty` (Jakarta and javax validation), JSpecify `@NonNull`, JetBrains `@NotNull` and Lombok `@NonNull`.
+   A Bean Validation constraint (an annotation with `@Constraint`) composed of one of these annotations, directly or inside another composed constraint, makes the property required too, as in the [`@CountryCode`](#composed-constraints) example. Other annotations are ignored, since Bean Validation doesn't apply the annotations placed on them.
 2. **Primitive** properties (`int`, `boolean`, ...) are always required, since they can't be null.
 3. Properties whose type is `Optional`, `OptionalInt`, `OptionalLong` or `OptionalDouble` are always optional.
 4. A property (or a type usage, such as in `List<@Nullable String>`) with any of the `nullableAnnotations` is **nullable**.
    The defaults are the `@Nullable` annotations from JSpecify, JetBrains, `jakarta.annotation` and `javax.annotation`.
+   A nullable property with a composed constraint that makes it required fails the conversion, since it's not clear which one is right.
+   A nullable property with a required annotation placed directly on it is just nullable and required (`name: string | null`).
 
 The settings below define how optional and nullable properties are written.
 
@@ -546,6 +549,30 @@ const result = PersonDTOSchema["~standard"].validate(data);                     
 
 Constraints on type arguments work too: `List<@NotBlank String>` becomes `z.array(z.string().regex(/\S/))`.
 
+#### Composed constraints
+
+A custom constraint that is only made of other constraints (a `@Constraint` with an empty `validatedBy`) is converted to the constraints placed on it. This one, from the [sample project](samples/sample), becomes `z.string().regex(/^(?:[A-Z]{2})$/).length(2)`:
+
+```java
+@NotNull
+@Pattern(regexp = "[A-Z]{2}")
+@Size(min = 2, max = 2)
+@Constraint(validatedBy = {})
+@Target({FIELD, METHOD, PARAMETER, RECORD_COMPONENT})
+@Retention(RUNTIME)
+public @interface CountryCode {
+    String message() default "invalid country code";
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
+}
+```
+
+- A composed constraint may contain other composed constraints and containers of repeated constraints (such as `@Pattern.List`).
+- With `@ReportAsSingleViolation`, all the composing constraints use the message of the composed constraint.
+- `@OverridesAttribute` (and `@OverridesAttribute.List`, with `constraintIndex`) is supported. With the attribute `@OverridesAttribute(constraint = Size.class, name = "max") int max();`, `@RequiredText(max = 60)` creates `.max(60)`.
+- A required annotation inside a composed constraint (such as the `@NotNull` above) makes the property required, as described in [section 4](#4-required-optional-and-nullable-properties).
+- A constraint with a validator (a non-empty `validatedBy`) fails the build, even when it's also composed of other constraints, since the validator code can't be converted. A constraint composed of itself (directly or not) fails too.
+
 ### 9.3 Error messages
 
 - A literal `message` in an annotation (such as `@NotBlank(message = "The name is required")`) becomes the Zod error message. Placeholders with attribute names, such as `{min}`, are replaced by their values.
@@ -579,7 +606,7 @@ export const PhoneSchema: z.ZodType<Phone> = z.object({
 
 The build fails, naming the class, the property and the cause, when:
 
-1. a constraint is not supported, such as custom `@Constraint` annotations and class-level constraints (exclude the class and write its schema by hand);
+1. a constraint is not supported, such as custom `@Constraint` annotations with a validator (only [composed constraints](#composed-constraints) are supported) and class-level constraints (exclude the class and write its schema by hand);
 2. a constraint doesn't apply to the property type, such as `@Email` on an `Integer`, or any constraint on a type with a custom schema mapping;
 3. a type has a [custom TypeScript mapping](#8-custom-type-mappings) but no validation `customTypeMappings` entry (java2ts doesn't know how to validate it);
 4. a generated schema references an excluded class, but the `customSchemasModule` isn't set;
@@ -690,7 +717,7 @@ java2ts focuses on converting model classes. These features are not supported:
 - **Validation schemas** (see [section 9](#9-generating-validation-schemas)):
   - only Zod 4 schemas are generated (Zod 3 isn't supported). Since they implement Standard Schema, they work with any library that accepts it;
   - validation groups are ignored: all constraints are always applied;
-  - custom `@Constraint` annotations, class-level and cross-field constraints, and `@Null` fail the build (write those schemas by hand);
+  - custom `@Constraint` annotations with a validator, class-level and cross-field constraints, and `@Null` fail the build (write those schemas by hand). Custom constraints only composed of other constraints are supported;
   - constraints on types with a custom schema mapping fail the build;
   - `@Valid` is ignored, since nested objects are always validated by their schemas;
   - Bean Validation message templates aren't translated: Zod's built-in messages (in the configured `locale`) are used;

@@ -11,6 +11,8 @@ import io.github.manoelcampos.java2ts.ts.TsProperty;
 import io.github.manoelcampos.java2ts.ts.TsType;
 import io.github.manoelcampos.java2ts.ts.TsUnionType;
 
+import java.util.Set;
+
 /**
  * Converts Java properties to TypeScript ones, defining their types, nullability, optionality and documentation.
  * <ul>
@@ -18,7 +20,8 @@ import io.github.manoelcampos.java2ts.ts.TsUnionType;
  *   <li>A property is read-only when it's a record component or its field is final,
  *   and {@link Settings#readonlyProperties()} is enabled.</li>
  *   <li>A property is optional when its type is a Java {@link java.util.Optional}, or when
- *   {@link Settings#requiredAnnotations()} is not empty and the property has none of them
+ *   {@link Settings#requiredAnnotations()} is not empty and the property has none of them,
+ *   either directly or inside a composed Bean Validation constraint
  *   (primitive properties are never optional, since they can't be null).
  *   Optional properties are declared according to the {@link Settings#optionalPropertiesDeclaration()}.</li>
  * </ul>
@@ -47,6 +50,7 @@ public final class PropertyResolver {
      * @param property the Java property to convert
      */
     public TsProperty resolve(final JavaProperty property) {
+        checkNullableComposedRequired(property);
         final boolean javaOptional = isJavaOptional(property);
         final TsType type = baseType(property, javaOptional);
         final boolean optional = javaOptional || isOptionalByAnnotations(property);
@@ -59,6 +63,21 @@ public final class PropertyResolver {
         final TsType optionalType = TsUnionType.combine(type, declaration.extraTypes());
         final boolean questionMark = declaration.usesQuestionMark();
         return new TsProperty(property.name(), questionMark ? withoutUndefined(optionalType) : optionalType, questionMark, readonly, comment);
+    }
+
+    /**
+     * Checks if a nullable property has a composed constraint that makes it required,
+     * since it's not clear which one must be used.
+     * @throws IllegalStateException if the property is nullable and has such a constraint
+     */
+    private void checkNullableComposedRequired(final JavaProperty property) {
+        if (!property.hasAnyAnnotation(settings.nullableAnnotations()))
+            return;
+
+        property.findConstraintComposedOfAny(settings.requiredAnnotations()).ifPresent(constraint -> {
+            final var msg = "%s: the property has a nullable annotation, but its constraint @%s is composed of a required annotation. Remove one of them";
+            throw new IllegalStateException(msg.formatted(property.qualifiedName(), constraint.annotationType().getSimpleName()));
+        });
     }
 
     /**
@@ -83,7 +102,15 @@ public final class PropertyResolver {
      */
     private boolean isOptionalByAnnotations(final JavaProperty property) {
         final boolean primitive = property.type().getType() instanceof Class<?> aClass && aClass.isPrimitive();
-        return !primitive && !settings.requiredAnnotations().isEmpty() && !property.hasAnyAnnotation(settings.requiredAnnotations());
+        return !primitive && !settings.requiredAnnotations().isEmpty() && !isRequiredByAnnotations(property);
+    }
+
+    /**
+     * {@return true if the property has any of the required annotations}, directly or inside a composed constraint
+     */
+    private boolean isRequiredByAnnotations(final JavaProperty property) {
+        final Set<String> required = settings.requiredAnnotations();
+        return property.hasAnyAnnotation(required) || property.findConstraintComposedOfAny(required).isPresent();
     }
 
     /**

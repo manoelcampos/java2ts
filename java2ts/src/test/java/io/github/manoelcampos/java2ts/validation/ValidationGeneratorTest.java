@@ -5,6 +5,7 @@ import io.github.manoelcampos.java2ts.TestClasspath;
 import io.github.manoelcampos.java2ts.TestSettings;
 import io.github.manoelcampos.java2ts.config.ClassSelection;
 import io.github.manoelcampos.java2ts.config.DateMapping;
+import io.github.manoelcampos.java2ts.config.Defaults;
 import io.github.manoelcampos.java2ts.config.OptionalPropertiesDeclaration;
 import io.github.manoelcampos.java2ts.config.Settings;
 import io.github.manoelcampos.java2ts.config.SettingsBuilder;
@@ -12,6 +13,7 @@ import io.github.manoelcampos.java2ts.config.ValidationSettings;
 import io.github.manoelcampos.java2ts.config.ValidationSettingsBuilder;
 import io.github.manoelcampos.java2ts.fixtures.Address;
 import io.github.manoelcampos.java2ts.fixtures.EmptyEnum;
+import io.github.manoelcampos.java2ts.validation.fixtures.Composed;
 import io.github.manoelcampos.java2ts.validation.fixtures.Contact;
 import io.github.manoelcampos.java2ts.validation.fixtures.Customer;
 import io.github.manoelcampos.java2ts.validation.fixtures.CustomerPage;
@@ -233,6 +235,42 @@ class ValidationGeneratorTest {
         final Class<?> aClass = Class.forName(Odd.class.getName() + "$" + className);
         final var ex = assertThrows(UnsupportedValidationException.class, () -> generate(List.of(aClass), UnaryOperator.identity()));
         assertTrue(String.valueOf(ex.getMessage()).contains(expectedMessage), ex.getMessage());
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', textBlock = """
+        City      | value: z.string().regex(/^(?:[0-9]{7})$/).max(7).nullish(),
+        NorthCity | value: z.string().regex(/\\S/).regex(/^(?:[0-9]{7})$/).max(7).regex(/^(?:1.*)$/).regex(/^(?:.*9)$/).nullish(),
+        Single    | value: z.string().regex(/^(?:[0-9]{7})$/, { error: "must have 7 digits" }).max(7, { error: "must have 7 digits" }).min(7, { error: "must have 7 digits" }).nullish(),
+        Overriding       | value: z.string().regex(/\\S/).max(60, { error: "up to 60 characters" }).nullish(),
+        NestedOverriding | value: z.string().regex(/\\S/).max(20, { error: "up to 20 characters" }).regex(/^(?:[a-z]{2,})$/).regex(/^(?:[a-z]{2,})$/).nullish(),
+        """)
+    void convertsComposedConstraints(final String className, final String expectedProperty) throws ClassNotFoundException {
+        final String code = generate(List.of(composedClass(className)), UnaryOperator.identity());
+        assertTrue(code.contains("    " + expectedProperty + "\n"), code);
+    }
+
+    @Test
+    void makesPropertiesRequiredByComposedConstraints() {
+        final String code = generate(List.of(Composed.RequiredCity.class), UnaryOperator.identity(), s -> s.requiredAnnotations(Defaults.REQUIRED_ANNOTATIONS));
+        assertTrue(code.contains("    value: z.string().regex(/^(?:[0-9]{7})$/).max(7),\n"), code);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', textBlock = """
+        Validated         | Validated.value: @WithValidator: constraint @WithValidator isn't supported: its validator can't be converted to a schema
+        ValidatedComposed | ValidatedComposed.value: @ComposedWithValidator: constraint @ComposedWithValidator isn't supported: its validator can't be converted
+        WrongOverriding   | WrongOverriding.value: @WrongOverride: constraint @WrongOverride isn't supported: @OverridesAttribute on attribute max doesn't match the attribute max of a composing @Size with constraintIndex 1
+        Cycle             | Cycle.value: @CycleStart: constraint @CycleStart isn't supported: it's composed of itself (@CycleStart -> @CycleEnd -> @CycleStart)
+        """)
+    void failsForUnsupportedComposedConstraints(final String className, final String expectedMessage) throws ClassNotFoundException {
+        final Class<?> aClass = composedClass(className);
+        final var ex = assertThrows(UnsupportedValidationException.class, () -> generate(List.of(aClass), UnaryOperator.identity()));
+        assertTrue(String.valueOf(ex.getMessage()).contains(expectedMessage), ex.getMessage());
+    }
+
+    private static Class<?> composedClass(final String simpleName) throws ClassNotFoundException {
+        return Class.forName(Composed.class.getName() + "$" + simpleName);
     }
 
     @Test

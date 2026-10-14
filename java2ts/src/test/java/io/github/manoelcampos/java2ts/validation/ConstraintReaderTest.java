@@ -1,8 +1,10 @@
 package io.github.manoelcampos.java2ts.validation;
 
+import io.github.manoelcampos.java2ts.validation.fixtures.Composed;
 import io.github.manoelcampos.java2ts.validation.model.Constraint;
 import io.github.manoelcampos.java2ts.validation.model.LengthConstraint;
 import io.github.manoelcampos.java2ts.validation.model.NotBlankConstraint;
+import io.github.manoelcampos.java2ts.validation.model.PatternConstraint;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -12,6 +14,7 @@ import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,6 +33,9 @@ class ConstraintReaderTest {
 
     @Deprecated
     private String notConstraint = "";
+
+    @Composed.CityCode
+    private String composed = "";
 
     private List<Constraint> read(final String fieldName, final Class<? extends Annotation> annotationType) throws NoSuchFieldException {
         return reader.read(getClass().getDeclaredField(fieldName).getAnnotation(annotationType));
@@ -57,5 +63,12 @@ class ConstraintReaderTest {
     @Test
     void ignoresAnnotationsThatAreNotConstraints() throws NoSuchFieldException {
         assertTrue(read("notConstraint", Deprecated.class).isEmpty());
+    }
+
+    @Test
+    void readsComposingConstraintsOfComposedConstraints() throws NoSuchFieldException {
+        final var pattern = new PatternConstraint(Composed.CityCode.REGEX, Set.of(), Optional.empty());
+        final var length = new LengthConstraint(OptionalInt.empty(), OptionalInt.of(7), Optional.empty());
+        assertEquals(List.of(pattern, length), read("composed", Composed.CityCode.class));
     }
 }

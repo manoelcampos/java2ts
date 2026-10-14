@@ -1,11 +1,14 @@
 package io.github.manoelcampos.java2ts.validation;
 
+import io.github.manoelcampos.java2ts.constraint.ConstraintAnnotations;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,13 +17,30 @@ import java.util.regex.Pattern;
  * Reads the attributes of an annotation by name, so that annotations (such as Bean Validation ones)
  * can be read without a compile-time dependency on them.
  * @param annotation the annotation to read
+ * @param overrides values that replace the ones of some attributes, indexed by the attribute name.
+ *        They're defined by a composed constraint whose attributes have {@code @OverridesAttribute}.
+ * @param messageSource the attributes of the annotation whose message is used by {@link #message()}
+ *        (a composed constraint with {@code @ReportAsSingleViolation} that has this annotation inside it),
+ *        or an empty Optional to use the message of this annotation
  * @author Manoel Campos
  */
-record AnnotationAttributes(Annotation annotation) {
+record AnnotationAttributes(Annotation annotation, Map<String, Object> overrides, Optional<AnnotationAttributes> messageSource) {
     private static final String MESSAGE = "message";
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([A-Za-z0-9_]+)}");
     private static final String TEMPLATE_START = "{";
     private static final String EXPRESSION_START = "${";
+
+    AnnotationAttributes {
+        overrides = Map.copyOf(overrides);
+    }
+
+    /**
+     * Creates an object to read the attributes of an annotation, with no overridden attribute, that uses its own message.
+     * @param annotation the annotation to read
+     */
+    AnnotationAttributes(final Annotation annotation) {
+        this(annotation, Map.of(), Optional.empty());
+    }
 
     /**
      * {@return the simple name of the annotation type, such as {@code Size}}
@@ -38,11 +58,16 @@ record AnnotationAttributes(Annotation annotation) {
     }
 
     /**
-     * {@return the value of an attribute}
+     * {@return the value of an attribute}, which is the one in the {@link #overrides()} when the attribute is overridden
      * @param name the attribute name
      * @throws IllegalStateException if the attribute can't be read
      */
     Object value(final String name) {
+        final Object overridden = overrides.get(name);
+        return overridden == null ? annotationValue(name) : overridden;
+    }
+
+    private Object annotationValue(final String name) {
         try {
             final Method method = annotation.annotationType().getMethod(name);
             method.setAccessible(true);
@@ -97,10 +122,7 @@ record AnnotationAttributes(Annotation annotation) {
      * such as the ones inside a container of repeated annotations ({@code @Pattern.List})
      */
     List<Annotation> nestedAnnotations() {
-        if (!has("value"))
-            return List.of();
-
-        return value("value") instanceof Annotation[] annotations ? List.of(annotations) : List.of();
+        return ConstraintAnnotations.nestedAnnotations(annotation);
     }
 
     /**
@@ -109,8 +131,16 @@ record AnnotationAttributes(Annotation annotation) {
      * are ignored, since they're translated by the backend. Placeholders with attribute names
      * (such as {@code {min}}) are replaced by the attribute values. A message with an
      * expression (such as {@code ${validatedValue}}) or unknown placeholders is ignored too.
+     * The message is read from the {@link #messageSource()}, when there is one.
      */
     Optional<String> message() {
+        return messageSource.map(AnnotationAttributes::message).orElseGet(this::ownMessage);
+    }
+
+    /**
+     * {@return the error message defined in the {@link #annotation()}}, as described in {@link #message()}
+     */
+    private Optional<String> ownMessage() {
         if (!has(MESSAGE))
             return Optional.empty();
 

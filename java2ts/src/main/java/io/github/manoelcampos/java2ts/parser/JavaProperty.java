@@ -1,13 +1,17 @@
 package io.github.manoelcampos.java2ts.parser;
 
+import io.github.manoelcampos.java2ts.constraint.ConstraintAnnotations;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Field;
+import java.lang.reflect.Member;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.RecordComponent;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -76,5 +80,31 @@ public record JavaProperty(String name, AnnotatedType type, List<AnnotatedElemen
      */
     public boolean hasAnyAnnotation(final Set<String> annotationNames) {
         return annotationNames().anyMatch(annotationNames::contains);
+    }
+
+    /**
+     * {@return the first constraint annotation of the property that is composed (directly or inside other composed constraints)
+     * of any of the given annotations}, or an empty Optional if there is none.
+     * Only Bean Validation constraints (annotations with {@code @Constraint}) are checked, since other annotations
+     * placed on an annotation type aren't applied to the annotated property.
+     * @param annotationNames fully qualified names of the annotations to look for inside the constraints
+     */
+    public Optional<Annotation> findConstraintComposedOfAny(final Set<String> annotationNames) {
+        return annotations().filter(annotation -> ConstraintAnnotations.isComposedOfAny(annotation, annotationNames)).findFirst();
+    }
+
+    /**
+     * {@return the fully qualified name of the class declaring the property, followed by the property name}, such as {@code com.app.Person.name}
+     */
+    public String qualifiedName() {
+        return elements.stream().findFirst().map(element -> declaringClass(element).getName() + "." + name).orElse(name);
+    }
+
+    private static Class<?> declaringClass(final AnnotatedElement element) {
+        return switch (element) {
+            case RecordComponent component -> component.getDeclaringRecord();
+            case Member member -> member.getDeclaringClass();
+            default -> throw new IllegalArgumentException("Unexpected property element: " + element);
+        };
     }
 }

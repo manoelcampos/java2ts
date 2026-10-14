@@ -49,14 +49,15 @@ Everything is wired by the `Java2Ts` facade. The Maven `GenerateMojo` is just an
 | `ts` | The TypeScript model: sealed `TsType` and `TsDeclaration` hierarchies made of records, each knowing how to format itself. |
 | `javadoc` | Reads xml-doclet XML using JAXB (`javadoc.xml` mapping classes) and runs the doclet in-process (`XmlDocletRunner`). |
 | `writer` | Writes the file header and the model to the output file. |
-| `validation` | Generates the validation file (`ValidationGenerator` facade): `ValidationModelParser` creates one schema per declared class (minus the excluded ones), `ConstraintReader` reads Bean Validation annotations by name (no compile dependency), `SchemaPropertyResolver` takes optionality/nullability from the TS property (so schemas and types always agree) and `TypeVariableBindings` resolves inherited type variables (object schemas include inherited properties). |
+| `constraint` | Reads Bean Validation constraint annotations by name (`ConstraintAnnotations`): finds constraints and their composing constraints (`ComposingConstraint`). Shared by `parser` (a composed constraint with a required annotation makes the property required) and `validation`. |
+| `validation` | Generates the validation file (`ValidationGenerator` facade): `ValidationModelParser` creates one schema per declared class (minus the excluded ones), `ConstraintReader` reads Bean Validation annotations by name (no compile dependency), including composed constraints (custom `@Constraint`s with no validator, read by `ConstraintDefinition` on top of `constraint.ConstraintAnnotations`, with `@OverridesAttribute` values from `AttributeOverrides` and cycles/`@ReportAsSingleViolation` tracked by `CompositionPath`), `SchemaPropertyResolver` takes optionality/nullability from the TS property (so schemas and types always agree) and `TypeVariableBindings` resolves inherited type variables (object schemas include inherited properties). |
 | `validation.model` | The library-agnostic schema model: sealed `SchemaType` and `Constraint` records. A constraint declares its `ConstraintTarget`s; applying it to a schema of another kind throws `UnsupportedValidationException`, which fails the build. |
 | `validation.zod` | Writes the model as Zod 4 code (`ZodWriter`, `ZodTypeFormatter`, `ZodConstraintFormatter`, `ZodLocales`). |
 | `maven` | The Mojo and the on-demand resolution of the xml-doclet from Maven repositories. |
 
 To support a new Java type, create a `TypeMappingRule` and register it in `TypeMapperFactory` before `UndeclarableTypeRule`. If it needs a new kind of result, add a method to `TypeRenderer` and implement it in both renderers.
 
-To support a new Bean Validation constraint, register a factory in `ConstraintReader`, create a `Constraint` record (declaring its `targets()`) and format it in `ZodConstraintFormatter` (the sealed hierarchy makes the switch fail to compile until you do).
+To support a new Bean Validation constraint, register a factory in `ConstraintReader`, create a `Constraint` record (declaring its `targets()`) and format it in `ZodConstraintFormatter` (the sealed hierarchy makes the switch fail to compile until you do). Custom constraints composed only of supported constraints need no factory: they're converted to their composing constraints.
 
 ## Conventions
 
@@ -76,7 +77,7 @@ To support a new Bean Validation constraint, register a factory in `ConstraintRe
 - The xml-doclet changes the thread context class loader. `XmlDocletRunner` restores it.
 - Annotations with CLASS retention (such as `lombok.NonNull`) are not visible to reflection. They're read from class files by `ClassFileAnnotations`.
 - The Mojo runs in the `compile` phase, after the compiler, so that `mvn compile` generates the file.
-- Validation schemas must always match the generated TypeScript types: the sample CI runs `tsc --strict` over both files. When changing optionality/nullability rules, change `PropertyResolver` only, since `SchemaPropertyResolver` reads the result from the TS property.
+- Validation schemas must always match the generated TypeScript types: the sample CI runs `tsc --strict` over both files. When changing optionality/nullability rules, change `PropertyResolver` only, since `SchemaPropertyResolver` reads the result from the TS property. `PropertyResolver` also looks for required annotations inside composed constraints (only annotations with `@Constraint`, recursively), and fails for a nullable property with such a constraint.
 - `maven-plugin-plugin` parses the sources with QDox, which fails ("could not match input") on some characters, such as literal U+2028/U+2029 inside char literals. Use numeric constants instead.
 - JavaDoc extraction is on by default (`java2ts.javadoc`). Any extraction error (doclet download, javadoc tool) only logs a warning, so it never breaks the user's build.
 - Classes are loaded in an isolated `URLClassLoader` with the platform class loader as parent, so plugin dependencies don't leak into the conversion.
