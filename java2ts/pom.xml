@@ -6,7 +6,7 @@
 
     <groupId>io.github.manoelcampos</groupId>
     <artifactId>java2ts</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.1</version>
     <packaging>maven-plugin</packaging>
     <name>java2ts</name>
 

@@ -60,6 +60,22 @@ class JavadocTest {
         assertEquals("The id inherited from {@link BaseModel}.", javadoc.memberComment(field("id")));
     }
 
+    /** Checks the comment of the issue #5 extracted by the xml-doclet. */
+    @Test
+    void keepsLinksAtTheStartOfListItemsAndBracesInsideCode() {
+        final String expected = """
+            Inline tags in different positions.
+            <ul>
+            <li>{@link Person} (text in parentheses after the link).</li>
+            <li>{@link Person}, text with a comma after the link.</li>
+            <li>Link in the middle: the {@link Person} (in parentheses).</li>
+            </ul>
+            Outside a list: {@link Person} (in parentheses).
+            Code with braces: `POST /import-jobs/{id}/retry`.
+            Code without braces: `POST /import-jobs`.""";
+        assertEquals(expected, javadoc.classComment(io.github.manoelcampos.java2ts.fixtures.InlineTags.class));
+    }
+
     private static java.lang.reflect.Field field(final String name) {
         try {
             return io.github.manoelcampos.java2ts.fixtures.AbstractModel.class.getDeclaredField(name);
