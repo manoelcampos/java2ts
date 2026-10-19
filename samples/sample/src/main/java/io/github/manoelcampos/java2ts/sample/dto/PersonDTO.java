@@ -13,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A hand-written Data Transfer Object for {@link Person}, which references
@@ -45,8 +46,12 @@ public record PersonDTO(
     public PersonDTO(final Person person) {
         this(
             person.getId(), person.getName(), person.getEmail(), person.getBirthDate(),
-            person.getCountry().getId(), partnerId(person), person.getStatus(),
+            countryId(person), partnerId(person), person.getStatus(),
             List.copyOf(person.getPhones()), person.getLoginAttempts());
+    }
+
+    private static long countryId(final Person person) {
+        return Objects.requireNonNull(person.getCountry().getId(), "The person's country must be saved before creating the DTO");
     }
 
     private static @Nullable Long partnerId(final Person person) {

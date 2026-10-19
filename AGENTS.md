@@ -64,7 +64,7 @@ To support a new Bean Validation constraint, register a factory in `ConstraintRe
 - Java 25: use records, sealed interfaces, switch pattern matching, `var` and streams where they make the code clearer.
 - Follow SOLID, one top-level class per file, small methods, constants instead of magic values, and immutable objects.
 - Default values live only in `config.Defaults`. They are used by the `SettingsBuilder` and the `@Parameter(defaultValue=...)` of the Mojo. `GenerateMojoTest.createsSettingsWithDefaultValues` checks that they're in sync.
-- Null safety: every package has a `package-info.java` with JSpecify `@NullMarked`. Use `@Nullable` only where null is really accepted. NullAway (Error Prone) checks this at compile time. Its JVM flags are in `java2ts/.mvn/jvm.config`.
+- Null safety: every package has a `package-info.java` with JSpecify `@NullMarked`. Use `@Nullable` only where null is really accepted. NullAway (Error Prone) checks this at compile time in all modules (the plugin and the samples). Its JVM flags are in the `.mvn/jvm.config` of each module. Keep the `errorprone.version` and `nullaway.version` properties of the sample poms equal to the plugin ones.
 - Document every public class and method with JavaDoc, including `@return` (or `{@return}`) and the effect of each `@param`.
 - Tests use JUnit 6 and must keep the coverage at 80% or more for lines and branches (enforced by JaCoCo). Prefer end-to-end assertions over the generated TypeScript (`Java2TsTest`) plus focused unit tests.
 - Keep the plugin slim: avoid new runtime dependencies. Jackson annotations are detected by their simple names, without depending on Jackson.
